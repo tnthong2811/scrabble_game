@@ -1,0 +1,82 @@
+### Cấu trúc thư mục
+```bash
+scrabble-ai/
+├── build/                # Thư mục build
+├── docs/                 # Tài liệu
+├── include/              # Header files
+│   ├── core/            # Core game logic (độc lập với SDL)
+│   │   ├── Board.hpp    # Bàn cờ và ô đặc biệt
+│   │   ├── Dictionary.hpp # Từ điển
+│   │   ├── Game.hpp     # Quản lý trò chơi (lượt, người chơi)
+│   │   ├── Player.hpp   # Người chơi (cả người và máy)
+│   │   ├── Tile.hpp     # Một ô chữ (chữ cái, điểm)
+|   |   |── TileBag.hpp  # Túi ô chữ
+│   │   └── Move.hpp     # Nước đi (từ, vị trí, hướng)
+│   ├── ai/              # AI cho người chơi máy
+│   │   ├── AIPlayer.hpp # Lớp AIPlayer kế thừa Player
+│   │   └── Strategy.hpp # Chiến thuật AI
+│   ├── sdl/             # SDL2 code (giao diện)
+│   │   ├── SDLWindow.hpp # Cửa sổ, renderer
+│   │   ├── SDLTexture.hpp # Quản lý texture
+│   │   ├── SDLFont.hpp  # Quản lý font
+│   │   ├── GameRenderer.hpp # Vẽ bàn cờ, chữ cái, UI
+│   │   └── EventHandler.hpp # Xử lý sự kiện
+│   └── utils/           # Tiện ích
+│       └── Logger.hpp   # Logging
+├── src/                 # Source code
+│   ├── core/            # Triển khai core logic
+│   ├── ai/              # Triển khai AI
+│   ├── sdl/             # Triển khai SDL
+│   └── main.cpp         # Hàm main
+├── assets/              # Tài nguyên
+│   ├── fonts/           # Font chữ
+│   ├── images/          # Ảnh (ô chữ, nền, ...)
+│   └── dictionaries/    # Từ điển
+├── tests/               # Unit tests
+├── .vscode/             # Cấu hình VSCode
+├── Makefile             # Makefile
+└── README.md
+```
+### Giải thích từng phần
+#### 1. Core Game Logic (độc lập với SDL)
+- **Board.hpp/cpp**: Quản lý bàn cờ 15x15. Mỗi ô có thể là:
+  - Ô thường, ô Double Letter (DL), Triple Letter (TL), Double Word (DW), Triple Word (TW).
+  - Cung cấp phương thức đặt từ, kiểm tra hợp lệ, tính điểm.
+- **Dictionary.hpp/cpp**: Tải từ điển và kiểm tra từ hợp lệ.
+- **Tile.hpp**: Biểu diễn một chữ cái (kí tự, điểm số, có phải blank hay không).
+- **Player.hpp/cpp**: Lớp cơ sở cho người chơi. Quản lý:
+  - Rack (7 chữ cái hiện có).
+  - Điểm số.
+  - Phương thức đặt từ (do người dùng hoặc AI quyết định).
+- **Move.hpp**: Biểu diễn một nước đi (từ, vị trí (x,y), hướng (ngang/dọc), và điểm số).
+- **Game.hpp/cpp**: Quản lý trò chơi:
+  - Luân phiên người chơi.
+  - Quản lý túi chữ cái (bag).
+  - Kiểm tra kết thúc game.
+#### 2. AI Module
+- **AIPlayer.hpp/cpp**: Kế thừa từ `Player`. Triển khai:
+  - Phương thức `makeMove()`: Sử dụng chiến thuật AI để chọn nước đi tốt nhất.
+- **Strategy.hpp/cpp**: Chứa các thuật toán AI:
+  - Tìm tất cả nước đi có thể (dựa trên chữ cái hiện có và bàn cờ).
+  - Đánh giá nước đi (điểm số, lợi thế chiến thuật).
+#### 3. SDL Module (Giao diện)
+- **SDLWindow.hpp/cpp**: Tạo cửa sổ, renderer.
+- **SDLTexture.hpp/cpp**: Tải và quản lý texture từ file ảnh.
+- **SDLFont.hpp/cpp**: Tải font và render text.
+- **GameRenderer.hpp/cpp**: Chịu trách nhiệm vẽ toàn bộ game:
+  - Bàn cờ (ô vuông, màu sắc ô đặc biệt).
+  - Các chữ cái trên bàn cờ và trong rack.
+  - Thông tin người chơi (điểm, lượt).
+- **EventHandler.hpp/cpp**: Xử lý sự kiện bàn phím, chuột:
+  - Kéo thả chữ cái.
+  - Xác nhận nước đi, bỏ qua lượt.
+#### 4. Hàm main (src/main.cpp)
+- Khởi tạo SDL.
+- Tạo cửa sổ, renderer.
+- Load assets (hình ảnh, font).
+- Khởi tạo game (số người chơi, AI).
+- Vòng lặp game chính:
+  - Xử lý sự kiện.
+  - Cập nhật trạng thái game (nếu là lượt AI, gọi AI để ra nước đi).
+  - Vẽ game.
+

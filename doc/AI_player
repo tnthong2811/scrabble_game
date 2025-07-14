@@ -1,0 +1,11 @@
+### Gợi ý triển khai AI
+- **Chiến thuật cơ bản**:
+  - Duyệt qua tất cả vị trí có thể đặt từ (dọc/ngang) và tất cả cách kết hợp chữ cái trong rack.
+  - Sử dụng cấu trúc dữ liệu Trie để kiểm tra nhanh tiền tố.
+  - Chọn nước đi có điểm cao nhất.
+- **Tối ưu**:
+  - Giới hạn không gian tìm kiếm (chỉ xét ô gần chữ cái hiện có).
+  - Sử dụng thuật toán GADDAG để tạo nước đi hiệu quả.
+### Lưu ý
+- **Tách biệt rõ ràng**: Core logic không được phụ thuộc vào SDL. Điều này giúp dễ dàng viết unit test và có thể thay thế giao diện sau này.
+- **Event Handling**: Khi người dùng tương tác (kéo thả chữ cái), cần cập nhật trạng thái game và kiểm tra tính hợp lệ.
