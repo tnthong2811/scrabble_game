@@ -1,0 +1,30 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Dictionary Test",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-std=c++17",
+                "-g",
+                "-I", "${workspaceFolder}/include",
+                "-I", "${workspaceFolder}/lib/gtest/gtest_src/googletest/include",
+                "${workspaceFolder}/src/core/dictionary/trie_dictionary.cpp",
+                "${workspaceFolder}/test/dictionary_test.cpp",
+                "-L", "${workspaceFolder}/lib/gtest/build/lib",
+                "-l", "gtest",
+                "-l", "gtest_main",
+                "-o", "${workspaceFolder}/build/dictionary_test.exe"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Biên dịch file test cho Dictionary và lưu vào thư mục build với GTest."
+        }
+    ]
+}

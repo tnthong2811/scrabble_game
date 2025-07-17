@@ -80,3 +80,27 @@ scrabble-ai/
   - Cập nhật trạng thái game (nếu là lượt AI, gọi AI để ra nước đi).
   - Vẽ game.
 
+
+
+scrabble-game/
+├── include/
+│   └── core/
+│       └── dictionary/
+│           ├── trie_dictionary.hpp       # Khai báo lớp chính
+│           ├── dictionary_interface.hpp  # Interface chung
+│           └── dictionary_factory.hpp    # Factory pattern (nếu cần)
+├── src/
+│   └── core/
+│       └── dictionary/
+│           ├── trie_dictionary.cpp       # Triển khai chi tiết
+│           ├── dictionary_loader.cpp     # Hỗ trợ tải từ điển
+│           └── dictionary_utils.cpp      # Tiện ích hỗ trợ
+├── assets/
+│   └── dictionaries/
+│       ├── nwl_english.txt               # File từ điển mẫu
+│       └── custom_words.txt              # Từ tùy chỉnh
+└── tests/
+    └── core/
+        └── dictionary/
+            ├── trie_dictionary_test.cpp  # Unit tests
+            └── test_dictionaries/       # Từ điển test
