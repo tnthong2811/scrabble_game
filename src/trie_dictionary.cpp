@@ -1,3 +1,4 @@
+// src/trie_dictionary.cpp
 #include "../include/core/dictionary/trie_dictionary.hpp"
 #include <fstream>
 #include <algorithm>
@@ -140,5 +141,24 @@ void TrieDictionary::find_possible_words_recursive(
             current_word.pop_back();
             available_letters[ch]++;
         }
+    }
+}
+
+std::vector<std::string> TrieDictionary::getAllWords() const {
+    std::vector<std::string> results;
+    std::string current_word;
+    getAllWordsRecursive(root.get(), current_word, results);
+    return results;
+}
+
+void TrieDictionary::getAllWordsRecursive(TrieNode* node, std::string& current_word, std::vector<std::string>& results) const {
+    if (!node) return;
+    if (node->is_end_of_word) {
+        results.push_back(current_word);
+    }
+    for (const auto& [ch, child] : node->children) {
+        current_word.push_back(ch);
+        getAllWordsRecursive(child.get(), current_word, results);
+        current_word.pop_back();
     }
 }
