@@ -1,7 +1,7 @@
 #pragma once
 #include "../../Core/Move.h"
 #include "../../Core/Board.h"
-#include "core/Play.h" // Thêm include Play.h
+#include "../../core/Play.h" 
 
 namespace AI {
 namespace Heuristics {

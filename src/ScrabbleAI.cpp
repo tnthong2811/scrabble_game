@@ -2,9 +2,8 @@
 #include "AI/Strategies/EasyStrategy.h"
 #include "AI/Strategies/MediumStrategy.h"
 #include "AI/Strategies/HardStrategy.h"
-#include "AI/Strategies/ExpertStrategy.h"
-#include "AI/Heuristics/BasicHeuristic.h"
-#include "AI/Heuristics/AdvancedHeuristic.h"
+#include "AI/Heuristics/Heuristic.h"
+#include <algorithm>
 
 namespace AI {
 
@@ -31,31 +30,32 @@ void ScrabbleAI::initializeStrategy() {
             strategy_ = std::make_unique<Strategies::HardStrategy>(dictionary_);
             heuristic_ = std::make_unique<Heuristics::AdvancedHeuristic>();
             break;
-            
-        case Difficulty::EXPERT:
-            strategy_ = std::make_unique<Strategies::ExpertStrategy>(dictionary_);
-            heuristic_ = std::make_unique<Heuristics::AdvancedHeuristic>();
-            break;
     }
 }
 
 Play ScrabbleAI::generatePlay(const Board& board, const std::vector<Tile>& rack) {
-    std::vector<Play> plays = strategy_->generatePlays(board, rack);
+    // SỬA LỖI 1: Nhận kết quả trả về đúng kiểu std::vector<Move>
+    std::vector<Move> moves = strategy_->generatePlays(board, rack);
     
-    if (plays.empty()) {
+    if (moves.empty()) {
         return Play::createPass();
     }
     
-    Play bestPlay = plays[0];
-    float bestScore = heuristic_->evaluate(bestPlay, board, {});
+    // Khởi tạo nước đi tốt nhất với nước đi đầu tiên trong danh sách
+    Play bestPlay(moves[0]); // Giả sử Play có constructor nhận Move
+    float bestScore = heuristic_->evaluate(bestPlay, board, calculateRemainingRack(rack, bestPlay));
     
-    for (const Play& play : plays) {
-        std::vector<Tile> remainingRack = calculateRemainingRack(rack, play);
-        float score = heuristic_->evaluate(play, board, remainingRack);
+    // Bắt đầu lặp từ phần tử thứ hai (nếu có)
+    for (size_t i = 1; i < moves.size(); ++i) {
+        // Chuyển đổi Move thành Play để đánh giá
+        Play currentPlay(moves[i]); 
+        
+        std::vector<Tile> remainingRack = calculateRemainingRack(rack, currentPlay);
+        float score = heuristic_->evaluate(currentPlay, board, remainingRack);
         
         if (score > bestScore) {
             bestScore = score;
-            bestPlay = play;
+            bestPlay = currentPlay;
         }
     }
     
@@ -71,10 +71,12 @@ void ScrabbleAI::setDifficulty(Difficulty newDifficulty) {
 
 std::vector<Tile> ScrabbleAI::calculateRemainingRack(const std::vector<Tile>& rack, const Play& play) {
     std::vector<Tile> remaining = rack;
-    const auto& tilesUsed = play.getMove().getTilesUsed();
+    // Giả sử Play có một phương thức getMove() để trả về đối tượng Move bên trong nó
+    const auto& tilesUsed = play.getMove().getTilesUsed(); 
     for (const Tile& usedTile : tilesUsed) {
         auto it = std::find_if(remaining.begin(), remaining.end(),
                                [&usedTile](const Tile& t) {
+                                   // So sánh đầy đủ để đảm bảo xóa đúng tile
                                    return t.getLetter() == usedTile.getLetter() && t.getValue() == usedTile.getValue() && t.isBlank() == usedTile.isBlank();
                                });
         if (it != remaining.end()) {

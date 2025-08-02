@@ -22,8 +22,7 @@ public:
 
     // === Utility ===
     std::string toString() const;    // Biểu diễn dạng chuỗi "A(1)"
-    bool operator==(const Tile& other) const; // So sánh 2 tile
-
+    bool operator==(const Tile& other) const;
     // Static method to access DEFAULT_SCORES
     static int getDefaultScore(char letter);
 

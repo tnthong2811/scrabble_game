@@ -13,7 +13,6 @@ enum class Difficulty {
     EASY,      // Sử dụng chiến lược ngẫu nhiên
     MEDIUM,    // Heuristic đơn giản
     HARD,      // GADDAG + heuristic nâng cao
-    EXPERT     // Mô phỏng Monte Carlo
 };
 
 class ScrabbleAI {

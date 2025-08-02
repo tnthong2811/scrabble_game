@@ -1,5 +1,6 @@
 #pragma once
 #include "Tile.h"
+#include "Move.h"
 #include <vector>
 #include <unordered_set>
 #include <string>
@@ -57,8 +58,8 @@ public:
     bool canPlaceWord(const Move& move) const;
     int calculateScore(const Move& move) const;
 
+    bool isAdjacentToTile(int row, int col) const;
 private:
     std::vector<std::vector<Cell>> grid_; // Sử dụng vector Cell thay vì Tile
     void initializePremiumSquares();
-    bool isAdjacentToTile(int row, int col) const;
 };

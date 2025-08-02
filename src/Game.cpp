@@ -1,5 +1,6 @@
 #include "core/Game.h"
-#include "AI/ScrabbleAI.h" // Đảm bảo tích hợp với ScrabbleAI
+#include "AI/ScrabbleAI.h" 
+#include <iostream>
 #include <fstream>
 #include <sstream>
 
@@ -184,6 +185,10 @@ bool Game::loadGame(const std::string& filename) {
     return true;
 }
 
+void Game::endGame() {
+    state_ = State::GAME_OVER;
+    std::cout << "Game has ended." << std::endl;
+}
 Game::State Game::getState() const { return state_; } // Sử dụng Game::State để tránh lỗi
 const Board& Game::getBoard() const { return board_; }
 const Player& Game::getPlayer(int id) const { return *players_[id]; }

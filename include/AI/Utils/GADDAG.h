@@ -3,10 +3,10 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include "../../Core/dictionary/trie_dictionary.hpp"
-#include "../../Core/Board.h"
-#include "../../Core/Tile.h"
-#include "../../Core/Move.h"
+#include "Core/dictionary/trie_dictionary.hpp"
+#include "Core/Board.h"
+#include "Core/Tile.h"
+#include "Core/Move.h"
 
 namespace AI {
 namespace Utils {

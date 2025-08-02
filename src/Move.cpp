@@ -1,5 +1,5 @@
 #include "core/Move.h"
-
+#include <algorithm>
 Move::Move(const std::string& word, int row, int col, Direction dir)
     : word_(word), row_(row), col_(col), direction_(dir), score_(0) {}
 
