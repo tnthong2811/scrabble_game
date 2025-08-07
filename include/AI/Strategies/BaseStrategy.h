@@ -1,7 +1,7 @@
 #pragma once
 #include "../../Core/Board.h"
 #include "../../Core/Tile.h"
-#include "../../Core/Move.h" // Thay Play bằng Move
+#include "../../Core/Move.h" 
 
 namespace AI {
 namespace Strategies {

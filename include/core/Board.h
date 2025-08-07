@@ -4,8 +4,7 @@
 #include <vector>
 #include <unordered_set>
 #include <string>
-#include <fstream> // Thêm để hỗ trợ ofstream và ifstream
-
+#include <fstream>
 class Board {
 public:
     static const int SIZE = 15;

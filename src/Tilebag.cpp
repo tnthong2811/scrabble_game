@@ -4,12 +4,9 @@
 #include <chrono>
 #include <stdexcept>
 
-// SỬA LỖI 1: Định nghĩa và khởi tạo biến ở duy nhất file .cpp này.
 namespace TileDistributions {
     const std::vector<Tile> STANDARD_ENGLISH = {
-        // Blank tiles (2)
         Tile(' ', 0, true), Tile(' ', 0, true),
-        // A-9, B-2, C-2, D-4, E-12, F-2, G-3, H-2, I-9, J-1, K-1, L-4, M-2,
         Tile('A', 1), Tile('A', 1), Tile('A', 1), Tile('A', 1), Tile('A', 1), Tile('A', 1), Tile('A', 1), Tile('A', 1), Tile('A', 1),
         Tile('B', 3), Tile('B', 3),
         Tile('C', 3), Tile('C', 3),
@@ -23,7 +20,6 @@ namespace TileDistributions {
         Tile('K', 5),
         Tile('L', 1), Tile('L', 1), Tile('L', 1), Tile('L', 1),
         Tile('M', 3), Tile('M', 3),
-        // N-6, O-8, P-2, Q-1, R-6, S-4, T-6, U-4, V-2, W-2, X-1, Y-2, Z-1
         Tile('N', 1), Tile('N', 1), Tile('N', 1), Tile('N', 1), Tile('N', 1), Tile('N', 1),
         Tile('O', 1), Tile('O', 1), Tile('O', 1), Tile('O', 1), Tile('O', 1), Tile('O', 1), Tile('O', 1), Tile('O', 1),
         Tile('P', 3), Tile('P', 3),
@@ -40,14 +36,12 @@ namespace TileDistributions {
     };
 }
 
-// Constructor
 TileBag::TileBag() {
     rng_.seed(std::chrono::system_clock::now().time_since_epoch().count());
     initializeStandardSet();
     shuffle();
 }
 
-// === Tile Management ===
 Tile TileBag::drawTile() {
     if (isEmpty()) throw std::runtime_error("TileBag is empty");
     Tile tile = tiles_.back();
@@ -67,7 +61,6 @@ std::vector<Tile> TileBag::drawTiles(int count) {
     return drawnTiles;
 }
 
-// Triển khai này bây giờ đã khớp với khai báo trong header
 void TileBag::returnTile(const Tile& tile) {
     tiles_.push_back(tile);
     updateLetterCounts(tile, 1);
@@ -93,7 +86,6 @@ void TileBag::reset() {
     shuffle();
 }
 
-// === State Queries ===
 bool TileBag::isEmpty() const {
     return tiles_.empty();
 }
@@ -106,7 +98,6 @@ int TileBag::initialTileCount() const {
     return static_cast<int>(initialSet_.size());
 }
 
-// === Statistical Info ===
 std::map<char, int> TileBag::getLetterDistribution() const {
     return letterCounts_;
 }
@@ -116,7 +107,6 @@ int TileBag::getRemainingLetterCount(char letter) const {
     return (it != letterCounts_.end()) ? it->second : 0;
 }
 
-// === Serialization ===
 std::string TileBag::serialize() const {
     std::ostringstream oss;
     for (const auto& tile : tiles_) {
@@ -150,21 +140,20 @@ bool TileBag::deserialize(const std::string& data) {
     return true;
 }
 
-// === Private Helpers ===
 void TileBag::initializeStandardSet() {
     initialSet_ = TileDistributions::STANDARD_ENGLISH;
-    reset(); // Reset sẽ làm phần còn lại
+    reset(); 
 }
 
 void TileBag::initializeFromSet(const std::vector<Tile>& set) {
     initialSet_ = set;
-    reset(); // Reset sẽ làm phần còn lại
+    reset(); 
 }
 
 void TileBag::updateLetterCounts(const Tile& tile, int delta) {
     char letter = tile.getLetter();
     if (tile.isBlank()) {
-        letter = ' '; // Đếm riêng ô trắng
+        letter = ' '; 
     }
     letterCounts_[letter] += delta;
     if (letterCounts_[letter] < 0) letterCounts_[letter] = 0;

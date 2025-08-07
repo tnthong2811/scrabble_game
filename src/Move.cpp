@@ -15,7 +15,7 @@ const std::vector<Tile>& Move::getTilesUsed() const { return tilesUsed_; }
 void Move::setScore(int score) { score_ = score; }
 void Move::addTileUsed(const Tile& tile) { tilesUsed_.push_back(tile); }
 void Move::addTileUsed(const std::vector<Tile>& tiles) {
-    tilesUsed_.insert(tilesUsed_.end(), tiles.begin(), tiles.end()); // Thêm tất cả Tile từ vector
+    tilesUsed_.insert(tilesUsed_.end(), tiles.begin(), tiles.end()); 
 }
 
 bool Move::isValid() const {
@@ -56,12 +56,11 @@ std::vector<std::pair<int, int>> Move::getAdjacentPositions() const {
         int r = pos.first, c = pos.second;
         for (int dr = -1; dr <= 1; ++dr) {
             for (int dc = -1; dc <= 1; ++dc) {
-                if (dr == 0 && dc == 0) continue; // Bỏ qua vị trí hiện tại
+                if (dr == 0 && dc == 0) continue; 
                 adjacent.emplace_back(r + dr, c + dc);
             }
         }
     }
-    // Loại bỏ các vị trí không hợp lệ (ngoài bảng)
     adjacent.erase(
         std::remove_if(adjacent.begin(), adjacent.end(),
             [](const std::pair<int, int>& pos) {

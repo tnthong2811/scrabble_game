@@ -11,12 +11,8 @@
 class Game {
 public:
     enum class State { NOT_STARTED, PLAYING, GAME_OVER };
-
-    // Constructor
     Game();
-
-    // Game setup
-    void startNewGame(int aiCount = 1); // Chỉ cần số AI, người chơi cố định là 1
+    void startNewGame(int aiCount = 1);
     void endGame();
 
     // Player actions

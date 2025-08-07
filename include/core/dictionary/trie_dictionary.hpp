@@ -20,7 +20,7 @@ public:
     bool contains(const std::string& word) const override;
     std::vector<std::string> find_matches(const std::string& pattern) const override;
     std::vector<std::string> find_possible_words(const std::string& letters) const override;
-    std::vector<std::string> getAllWords() const; // Thêm phương thức này
+    std::vector<std::string> getAllWords() const; 
 
 private:
     std::unique_ptr<TrieNode> root;

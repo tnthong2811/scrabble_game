@@ -14,7 +14,7 @@ public:
     std::vector<Move> generatePlays(const Board& board, const std::vector<Tile>& rack) override;
 
 private:
-    ::AI::Utils::GADDAG gaddag_; // Đối tượng GADDAG
+    ::AI::Utils::GADDAG gaddag_; 
     std::vector<Move> findPlaysWithGADDAG(const Board& board, const std::vector<Tile>& rack);
     static std::vector<std::pair<int, int>> findAnchorPoints(const Board& board);
 };

@@ -1,18 +1,18 @@
 #pragma once
 #include "Strategies/BaseStrategy.h"
 #include "Heuristics/Heuristic.h"
-#include "core/Play.h"        // Thêm include Play.h
-#include "core/Board.h"       // Thêm include Board.h
-#include "core/Tile.h"        // Thêm include Tile.h
-#include "core/dictionary/trie_dictionary.hpp" // Thêm include TrieDictionary.h
+#include "core/Play.h"        
+#include "core/Board.h"      
+#include "core/Tile.h"        
+#include "core/dictionary/trie_dictionary.hpp" 
 #include <memory>
 
 namespace AI {
 
 enum class Difficulty {
-    EASY,      // Sử dụng chiến lược ngẫu nhiên
-    MEDIUM,    // Heuristic đơn giản
-    HARD,      // GADDAG + heuristic nâng cao
+    EASY,     
+    MEDIUM,    
+    HARD,      
 };
 
 class ScrabbleAI {

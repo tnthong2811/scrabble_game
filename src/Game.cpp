@@ -16,27 +16,25 @@ void Game::startNewGame(int aiCount) {
     tileBag_.reset();
 
     setupPlayers(aiCount);
-
-    // Deal initial tiles
     for (auto& player : players_) {
         refillRack(*player);
     }
 
     state_ = State::PLAYING;
-    currentPlayerId_ = 0; // Bắt đầu với người chơi (ID 0 là human)
+    currentPlayerId_ = 0; 
 }
 
 void Game::setupPlayers(int aiCount) {
     players_.clear();
-    players_.push_back(std::make_unique<Player>("Human")); // Người chơi cố định ID 0
+    players_.push_back(std::make_unique<Player>("Human"));
 
     for (int i = 0; i < aiCount; ++i) {
-        players_.push_back(std::make_unique<Player>("AI " + std::to_string(i + 1))); // Giả sử AIPlayer kế thừa Player
+        players_.push_back(std::make_unique<Player>("AI " + std::to_string(i + 1))); 
     }
 }
 
 bool Game::playWord(int playerId, const std::string& word, int row, int col, bool horizontal) {
-    if (state_ != State::PLAYING || playerId != currentPlayerId_ || playerId != 0) { // Chỉ nhân cho phép chơi
+    if (state_ != State::PLAYING || playerId != currentPlayerId_ || playerId != 0) { 
         return false;
     }
 
@@ -44,12 +42,10 @@ bool Game::playWord(int playerId, const std::string& word, int row, int col, boo
     Move::Direction dir = horizontal ? Move::Direction::HORIZONTAL : Move::Direction::VERTICAL;
     Move move(word, row, col, dir);
 
-    if (board_.placeWord(word, row, col, horizontal)) { // Sử dụng placeWord thay placeMove
-        // Tính điểm (cần triển khai trong Board để bao gồm từ phụ)
+    if (board_.placeWord(word, row, col, horizontal)) { 
         int score = board_.calculateWordScore(word, row, col, horizontal);
         move.setScore(score);
 
-        // Remove used tiles from player's rack
         for (const Tile& tile : player.getRack()) {
             for (char c : word) {
                 if (tile.getLetter() == c || (tile.isBlank() && tile.getValue() == 0)) {
@@ -76,19 +72,17 @@ void Game::nextTurn() {
     if (checkGameEnd()) {
         calculateFinalScores();
         state_ = State::GAME_OVER;
-    } else if (currentPlayerId_ != 0) { // Nếu là lượt AI
+    } else if (currentPlayerId_ != 0) { 
         processAITurn();
     }
 }
 
 void Game::processAITurn() {
     Player& aiPlayer = *players_[currentPlayerId_];
-    AI::ScrabbleAI ai(AI::Difficulty::MEDIUM, dictionary_); // Sử dụng constructor đúng với Difficulty
-    Play aiPlay = ai.generatePlay(board_, aiPlayer.getRack()); // Sử dụng board_ và rack từ aiPlayer
-
+    AI::ScrabbleAI ai(AI::Difficulty::MEDIUM, dictionary_);
+    Play aiPlay = ai.generatePlay(board_, aiPlayer.getRack()); 
     if (board_.placeWord(aiPlay.getMove().getWord(), aiPlay.getMove().getRow(), aiPlay.getMove().getCol(),
                          aiPlay.getMove().getDirection() == Move::Direction::HORIZONTAL)) {
-        // Áp dụng nước đi nếu hợp lệ
         playWord(currentPlayerId_, aiPlay.getMove().getWord(), aiPlay.getMove().getRow(), aiPlay.getMove().getCol(),
                  aiPlay.getMove().getDirection() == Move::Direction::HORIZONTAL);
     } else {
@@ -167,7 +161,7 @@ bool Game::loadGame(const std::string& filename) {
     file >> currentPlayerId_;
 
     std::string tileBagData;
-    std::getline(file, tileBagData); // Đọc dòng trống
+    std::getline(file, tileBagData); 
     std::getline(file, tileBagData);
     tileBag_.deserialize(tileBagData);
 
@@ -189,7 +183,7 @@ void Game::endGame() {
     state_ = State::GAME_OVER;
     std::cout << "Game has ended." << std::endl;
 }
-Game::State Game::getState() const { return state_; } // Sử dụng Game::State để tránh lỗi
+Game::State Game::getState() const { return state_; } 
 const Board& Game::getBoard() const { return board_; }
 const Player& Game::getPlayer(int id) const { return *players_[id]; }
 int Game::getCurrentPlayerId() const { return currentPlayerId_; }

@@ -1,7 +1,7 @@
 #pragma once
 #include "BaseStrategy.h"
 #include "../../Core/Move.h"
-#include <random> // Thêm include cho std::mt19937
+#include <random> 
 
 namespace AI {
 namespace Strategies {

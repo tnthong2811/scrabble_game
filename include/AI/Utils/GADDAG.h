@@ -25,7 +25,7 @@ public:
     };
 
     GADDAG();
-    void buildFromDictionary(const TrieDictionary& dictionary); // Thay Dictionary bằng TrieDictionary
+    void buildFromDictionary(const TrieDictionary& dictionary); 
     bool isWordValid(const std::string& word) const;
     std::vector<std::string> findValidWords(const std::vector<char>& letters) const;
     std::vector<std::string> findValidWords(const BoardPosition& pos, bool horizontal, const Board& board,

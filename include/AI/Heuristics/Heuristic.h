@@ -17,8 +17,8 @@ public:
     void setRiskFactor(float value) { riskFactor_ = value; }
 
 protected:
-    float aggressiveness_ = 1.0f;  // 0.5-2.0
-    float riskFactor_ = 1.0f;      // 0.5-1.5
+    float aggressiveness_ = 1.0f; 
+    float riskFactor_ = 1.0f;     
 };
 
 class BasicHeuristic : public Heuristic {

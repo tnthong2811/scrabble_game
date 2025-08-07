@@ -3,13 +3,11 @@
 #include <cctype>
 #include <fstream>
 
-// Khởi tạo bàn cờ
 Board::Board() {
     grid_.resize(SIZE, std::vector<Cell>(SIZE));
     initializePremiumSquares();
 }
 
-// Đặt tile
 bool Board::placeTile(int row, int col, Tile tile) {
     if (!isValidPosition(row, col)) return false;
     if (hasTile(row, col)) return false;
@@ -17,12 +15,11 @@ bool Board::placeTile(int row, int col, Tile tile) {
     grid_[row][col].tile = tile;
     grid_[row][col].letter = tile.getLetter();
     if (grid_[row][col].type != CellType::NORMAL) {
-        markPremiumUsed(row, col); // Đánh dấu premium đã dùng khi đặt tile
+        markPremiumUsed(row, col); 
     }
     return true;
 }
 
-// Đặt cả từ
 bool Board::placeWord(const std::string& word, int row, int col, bool horizontal) {
     if (!isValidPosition(row, col)) return false;
 
@@ -35,13 +32,12 @@ bool Board::placeWord(const std::string& word, int row, int col, bool horizontal
 
         if (!hasTile(r, c)) {
             if (word[i] == ' ') {
-                // Blank tile
-                Tile blankTile(' ', 0, true); // Sử dụng constructor 3 tham số
-                blankTile.setBlankLetter('A'); // Cần thêm vào Tile.h
+                Tile blankTile(' ', 0, true); 
+                blankTile.setBlankLetter('A'); 
                 grid_[r][c].tile = blankTile;
-                grid_[r][c].letter = 'A'; // Gán ký tự tạm thời
+                grid_[r][c].letter = 'A'; 
             } else {
-                int value = Tile::getDefaultScore(word[i]); // Sử dụng phương thức tĩnh
+                int value = Tile::getDefaultScore(word[i]); 
                 grid_[r][c].tile = Tile(word[i], value);
                 grid_[r][c].letter = word[i];
             }
@@ -53,7 +49,6 @@ bool Board::placeWord(const std::string& word, int row, int col, bool horizontal
     return true;
 }
 
-// Tính điểm
 int Board::calculateWordScore(const std::string& word, int row, int col, bool horizontal) const {
     int score = 0;
     int wordMultiplier = 1;
@@ -71,7 +66,7 @@ int Board::calculateWordScore(const std::string& word, int row, int col, bool ho
                 case CellType::TRIPLE_LETTER: letterScore *= 3; break;
                 case CellType::DOUBLE_WORD: wordMultiplier *= 2; break;
                 case CellType::TRIPLE_WORD: wordMultiplier *= 3; break;
-                case CellType::CENTER: wordMultiplier *= 2; break; // Ví dụ bonus cho ô trung tâm
+                case CellType::CENTER: wordMultiplier *= 2; break;
                 default: break;
             }
         }
@@ -81,34 +76,29 @@ int Board::calculateWordScore(const std::string& word, int row, int col, bool ho
     return score * wordMultiplier;
 }
 
-// Kiểm tra điểm neo
 bool Board::isAnchor(int row, int col) const {
     if (!isValidPosition(row, col)) return false;
     if (hasTile(row, col)) return false;
     return isAdjacentToTile(row, col);
 }
 
-// Đánh dấu ô premium đã dùng
 void Board::markPremiumUsed(int row, int col) {
     if (isValidPosition(row, col)) {
         grid_[row][col].isPremiumUsed = true;
     }
 }
 
-// Lấy loại ô
 Board::CellType Board::getCellType(int row, int col) const {
     if (!isValidPosition(row, col)) return CellType::NORMAL;
     return grid_[row][col].type;
 }
 
-// Lấy ô cụ thể
 const Board::Cell& Board::getCell(int row, int col) const {
     if (isValidPosition(row, col)) return grid_[row][col];
     static Cell defaultCell;
     return defaultCell;
 }
 
-// Reset bàn cờ
 void Board::reset() {
     for (int i = 0; i < SIZE; ++i)
         for (int j = 0; j < SIZE; ++j) {
@@ -119,7 +109,6 @@ void Board::reset() {
     initializePremiumSquares();
 }
 
-// Serialize bàn cờ
 void Board::serialize(std::ofstream& file) const {
     for (int i = 0; i < SIZE; ++i) {
         for (int j = 0; j < SIZE; ++j) {
@@ -128,7 +117,6 @@ void Board::serialize(std::ofstream& file) const {
     }
 }
 
-// Deserialize bàn cờ
 void Board::deserialize(std::ifstream& file) {
     for (int i = 0; i < SIZE; ++i) {
         for (int j = 0; j < SIZE; ++j) {
@@ -145,7 +133,6 @@ void Board::deserialize(std::ifstream& file) {
     }
 }
 
-// Private helpers
 void Board::initializePremiumSquares() {
     grid_[SIZE / 2][SIZE / 2].type = CellType::CENTER;
 
@@ -171,7 +158,6 @@ bool Board::isAdjacentToTile(int row, int col) const {
     return false;
 }
 
-// Các phương thức khác
 bool Board::isEmpty() const {
     for (int i = 0; i < SIZE; i++)
         for (int j = 0; j < SIZE; j++)
@@ -199,35 +185,29 @@ Tile Board::removeTile(int row, int col) {
     return tile;
 }
 
-// Kiểm tra kết nối từ
 bool Board::isWordConnected(const std::string& word, int row, int col, bool horizontal) const {
     for (size_t i = 0; i < word.size(); i++) {
         int r = row + (horizontal ? 0 : i);
         int c = col + (horizontal ? i : 0);
         if (!isValidPosition(r, c)) return false;
-        if (hasTile(r, c)) continue; // Ô đã có tile, bỏ qua
-        if (isAdjacentToTile(r, c)) return true; // Kết nối với tile lân cận
+        if (hasTile(r, c)) continue; 
+        if (isAdjacentToTile(r, c)) return true; 
     }
-    return false; // Không có kết nối
+    return false; 
 }
 
 std::vector<std::string> Board::findNewWords(const std::string& mainWord, int row, int col, bool horizontal) const {
     std::vector<std::string> newWords;
 
-    // Tạo bản sao của Board để thử nghiệm mà không thay đổi trạng thái gốc
     Board tempBoard = *this;
 
-    // Thử đặt từ trên bản sao
     if (tempBoard.placeWord(mainWord, row, col, horizontal)) {
-        // Thêm từ chính nếu hợp lệ
         newWords.push_back(mainWord);
 
-        // Duyệt qua từng ký tự trong mainWord
         for (size_t i = 0; i < mainWord.size(); ++i) {
             int r = row + (horizontal ? 0 : i);
             int c = col + (horizontal ? i : 0);
 
-            // Kiểm tra từ vuông góc
             bool isVertical = !horizontal;
             int start = (isVertical ? r : c);
             int end = start + (isVertical ? static_cast<int>(mainWord.size()) : 1);
@@ -239,17 +219,16 @@ std::vector<std::string> Board::findNewWords(const std::string& mainWord, int ro
                 int checkC = isVertical ? fixedCoord : j;
                 if (tempBoard.isValidPosition(checkR, checkC) && tempBoard.hasTile(checkR, checkC)) {
                     perpendicularWord += tempBoard.getTileLetter(checkR, checkC);
-                } else if (static_cast<size_t>(j - start) == i) { // So sánh với i (size_t)
+                } else if (static_cast<size_t>(j - start) == i) { 
                     perpendicularWord += mainWord[i];
                 } else {
-                    break; // Dừng nếu gặp ô trống
+                    break; 
                 }
             }
             if (!perpendicularWord.empty() && perpendicularWord.length() >= 2) {
                 newWords.push_back(perpendicularWord);
             }
 
-            // Kiểm tra các từ lân cận ở hướng vuông góc
             for (int dr = -1; dr <= 1; ++dr) {
                 for (int dc = -1; dc <= 1; ++dc) {
                     if ((dr == 0 && dc == 0) || (horizontal && dr != 0) || (!horizontal && dc != 0)) continue;
@@ -257,7 +236,6 @@ std::vector<std::string> Board::findNewWords(const std::string& mainWord, int ro
                     int newC = c + dc;
                     if (!tempBoard.isValidPosition(newR, newC) || !tempBoard.hasTile(newR, newC)) continue;
 
-                    // Xây dựng từ từ ô lân cận
                     std::string adjacentWord;
                     int currR = newR, currC = newC;
                     while (tempBoard.isValidPosition(currR, currC) && tempBoard.hasTile(currR, currC)) {
@@ -277,21 +255,17 @@ std::vector<std::string> Board::findNewWords(const std::string& mainWord, int ro
         }
     }
 
-    // Loại bỏ trùng lặp và sắp xếp
     std::sort(newWords.begin(), newWords.end());
     newWords.erase(std::unique(newWords.begin(), newWords.end()), newWords.end());
     return newWords;
 }
 
-// Lấy tất cả các từ hiện có trên bàn cờ
 std::unordered_set<std::string> Board::getAllWords() const {
     std::unordered_set<std::string> words;
 
-    // Duyệt từng ô trên bàn cờ
     for (int r = 0; r < SIZE; ++r) {
         for (int c = 0; c < SIZE; ++c) {
             if (hasTile(r, c)) {
-                // Kiểm tra từ ngang
                 std::string horizontalWord;
                 int left = c;
                 while (left >= 0 && hasTile(r, left)) left--;
@@ -308,7 +282,6 @@ std::unordered_set<std::string> Board::getAllWords() const {
                     words.insert(horizontalWord);
                 }
 
-                // Kiểm tra từ dọc
                 std::string verticalWord;
                 int up = r;
                 while (up >= 0 && hasTile(up, c)) up--;

@@ -6,9 +6,6 @@ using DictionaryPtr = std::unique_ptr<DictionaryInterface>;
 
 enum class DictionaryType {
     TRIE,
-    // Có thể thêm các loại khác sau này
-    // HASH,
-    // DAWG
 };
 
 class DictionaryFactory {

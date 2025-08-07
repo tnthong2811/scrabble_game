@@ -34,20 +34,16 @@ void ScrabbleAI::initializeStrategy() {
 }
 
 Play ScrabbleAI::generatePlay(const Board& board, const std::vector<Tile>& rack) {
-    // SỬA LỖI 1: Nhận kết quả trả về đúng kiểu std::vector<Move>
     std::vector<Move> moves = strategy_->generatePlays(board, rack);
     
     if (moves.empty()) {
         return Play::createPass();
     }
     
-    // Khởi tạo nước đi tốt nhất với nước đi đầu tiên trong danh sách
-    Play bestPlay(moves[0]); // Giả sử Play có constructor nhận Move
+    Play bestPlay(moves[0]); 
     float bestScore = heuristic_->evaluate(bestPlay, board, calculateRemainingRack(rack, bestPlay));
     
-    // Bắt đầu lặp từ phần tử thứ hai (nếu có)
     for (size_t i = 1; i < moves.size(); ++i) {
-        // Chuyển đổi Move thành Play để đánh giá
         Play currentPlay(moves[i]); 
         
         std::vector<Tile> remainingRack = calculateRemainingRack(rack, currentPlay);
@@ -71,12 +67,10 @@ void ScrabbleAI::setDifficulty(Difficulty newDifficulty) {
 
 std::vector<Tile> ScrabbleAI::calculateRemainingRack(const std::vector<Tile>& rack, const Play& play) {
     std::vector<Tile> remaining = rack;
-    // Giả sử Play có một phương thức getMove() để trả về đối tượng Move bên trong nó
     const auto& tilesUsed = play.getMove().getTilesUsed(); 
     for (const Tile& usedTile : tilesUsed) {
         auto it = std::find_if(remaining.begin(), remaining.end(),
                                [&usedTile](const Tile& t) {
-                                   // So sánh đầy đủ để đảm bảo xóa đúng tile
                                    return t.getLetter() == usedTile.getLetter() && t.getValue() == usedTile.getValue() && t.isBlank() == usedTile.isBlank();
                                });
         if (it != remaining.end()) {

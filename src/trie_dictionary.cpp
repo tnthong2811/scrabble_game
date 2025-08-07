@@ -1,4 +1,3 @@
-// src/trie_dictionary.cpp
 #include "../include/core/dictionary/trie_dictionary.hpp"
 #include <fstream>
 #include <algorithm>

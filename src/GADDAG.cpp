@@ -3,8 +3,7 @@
 #include <queue>
 #include <algorithm>
 #include <functional>
-#include <string> // Đảm bảo include để sử dụng std::string::size_type
-
+#include <string> 
 namespace AI {
 namespace Utils {
 
@@ -12,7 +11,7 @@ GADDAG::GADDAG() : root_(std::make_shared<Node>()) {}
 
 void GADDAG::buildFromDictionary(const TrieDictionary& dictionary) {
     for (const std::string& word : dictionary.getAllWords()) {
-        if (word.length() >= 2) { // Bỏ qua từ 1 chữ cái
+        if (word.length() >= 2) { 
             addWord(word);
         }
     }
@@ -97,7 +96,7 @@ std::vector<Move> GADDAG::generatePlaysForPosition(const Board& board,
                 }
             }
         }
-        move.addTileUsed(tilesUsed); // Sử dụng phương thức hỗ trợ vector
+        move.addTileUsed(tilesUsed); 
         plays.push_back(move);
     }
     
@@ -215,7 +214,7 @@ int GADDAG::calculateScore(const std::string& word, const Board& board, const Bo
         int r = pos.row + (horizontal ? 0 : i);
         int c = pos.col + (horizontal ? i : 0);
         if (board.isValidPosition(r, c)) {
-            score += Tile(word[i], false).getValue(); // Giả định giá trị mặc định
+            score += Tile(word[i], false).getValue();
         }
     }
     return score;
