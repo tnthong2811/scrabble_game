@@ -1,8 +1,9 @@
 #include "core/Player.h"
 #include <algorithm>
 #include <cctype>
+#include <sstream> // Needed for deserialize
 
-Player::Player(const std::string& name) : name_(name) {}
+Player::Player(const std::string& name) : name_(name), score_(0) {}
 
 const std::vector<Tile>& Player::getRack() const {
     return rack_;
@@ -14,122 +15,123 @@ bool Player::addToRack(Tile tile) {
     return true;
 }
 
-bool Player::removeFromRack(char letter) {
-    auto it = std::find_if(rack_.begin(), rack_.end(),
-                           [letter](const Tile& t) { return std::toupper(t.getLetter()) == std::toupper(letter); });
-    if (it != rack_.end()) {
-        rack_.erase(it);
-        return true;
+void Player::removeTilesFromRack(const std::string& word) {
+    std::string tempWord = word;
+    std::vector<Tile> newRack;
+    std::vector<bool> used(rack_.size(), false);
+
+    // Step 1: Use regular tiles first
+    for (size_t i = 0; i < tempWord.length(); ++i) {
+        char letter_to_find = std::toupper(tempWord[i]);
+        for (size_t j = 0; j < rack_.size(); ++j) {
+            if (!used[j] && !rack_[j].isBlank() && rack_[j].getLetter() == letter_to_find) {
+                used[j] = true;
+                tempWord[i] = '\0'; // Mark letter as used
+                break;
+            }
+        }
     }
-    return false;
+
+    // Step 2: Use blank tiles for any remaining letters
+    for (size_t i = 0; i < tempWord.length(); ++i) {
+        if (tempWord[i] != '\0') {
+             for (size_t j = 0; j < rack_.size(); ++j) {
+                if (!used[j] && rack_[j].isBlank()) {
+                    used[j] = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    // Build the new rack from the tiles that were not used
+    for(size_t i=0; i < rack_.size(); ++i) {
+        if(!used[i]) {
+            newRack.push_back(rack_[i]);
+        }
+    }
+    rack_ = newRack;
 }
 
 bool Player::hasLetter(char letter) const {
-    return std::find_if(rack_.begin(), rack_.end(),
-                        [letter](const Tile& t) { return std::toupper(t.getLetter()) == std::toupper(letter) || t.isBlank(); }) != rack_.end();
-}
-
-Player::PlayResult Player::playWord(Board& board, 
-                                  const std::string& word,
-                                  int row, int col,
-                                  bool horizontal) {
-    PlayResult result{false, 0, {}};
-
-    if (!canFormWord(word)) return result;
-
-    if (board.placeWord(word, row, col, horizontal)) {
-        result.score = board.calculateWordScore(word, row, col, horizontal);
-        result.wordsFormed = board.findNewWords(word, row, col, horizontal);
-        result.success = true;
-
-        for (char c : word) {
-            char upperC = std::toupper(c);
-            auto it = std::find_if(rack_.begin(), rack_.end(),
-                                   [upperC](const Tile& t) { return std::toupper(t.getLetter()) == upperC || t.isBlank(); });
-            if (it != rack_.end()) {
-                if (it->isBlank()) {
-                    it->setBlankLetter(c); 
-                }
-                rack_.erase(it);
-            }
-        }
-        addScore(result.score);
-    }
-    return result;
-}
-
-// Đổi chữ
-bool Player::swapTiles(TileBag& bag, const std::vector<char>& letters) {
-    if (letters.empty() || letters.size() > MAX_RACK_SIZE) return false;
-
-    for (char c : letters) {
-        if (!hasLetter(c)) return false;
-    }
-
-    for (char c : letters) {
-        removeFromRack(c);
-        bag.returnTile(Tile(c, Tile::getDefaultScore(c), false)); 
-    }
-    refillRack(bag);
-    return true;
-}
-
-void Player::endTurn(Board& board, TileBag& bag) {
-    refillRack(bag);
+    char upperC = std::toupper(letter);
+    return std::any_of(rack_.begin(), rack_.end(), [upperC](const Tile& t) {
+        return t.getLetter() == upperC || t.isBlank();
+    });
 }
 
 bool Player::canFormWord(const std::string& word) const {
-    std::vector<Tile> tempRack = rack_;
-    int blankCount = std::count_if(tempRack.begin(), tempRack.end(),
-                                   [](const Tile& t) { return t.isBlank(); });
-
+    auto tempRack = this->rack_;
     for (char c : word) {
         char upperC = std::toupper(c);
-        auto it = std::find_if(tempRack.begin(), tempRack.end(),
-                               [upperC](const Tile& t) { return std::toupper(t.getLetter()) == upperC; });
+        auto it = std::find_if(tempRack.begin(), tempRack.end(), [upperC](const Tile& t){
+            return !t.isBlank() && t.getLetter() == upperC;
+        });
+
         if (it != tempRack.end()) {
             tempRack.erase(it);
-        } else if (blankCount > 0) {
-            blankCount--;
         } else {
-            return false;
+            auto blank_it = std::find_if(tempRack.begin(), tempRack.end(), [](const Tile& t){ return t.isBlank(); });
+            if (blank_it != tempRack.end()) {
+                tempRack.erase(blank_it);
+            } else {
+                return false;
+            }
         }
     }
     return true;
 }
 
-void Player::refillRack(TileBag& bag) {
-    while (!isRackFull() && !bag.isEmpty()) {
-        addToRack(bag.drawTile());
+bool Player::swapTiles(TileBag& bag, const std::vector<char>& letters) {
+    std::string wordFromLetters(letters.begin(), letters.end());
+    if (letters.empty() || !canFormWord(wordFromLetters) || letters.size() > static_cast<size_t>(bag.remainingTiles())) {
+        return false;
     }
+
+    std::vector<Tile> tilesToReturn;
+    for(char c : letters) {
+        tilesToReturn.emplace_back(c, Tile::getDefaultScore(c));
+    }
+
+    // Remove the tiles from this player's rack
+    removeTilesFromRack(wordFromLetters);
+
+    // Return the tiles to the bag
+    bag.returnTiles(tilesToReturn);
+
+    // The Game class is responsible for refilling the rack after this returns true
+    return true;
 }
 
 void Player::addScore(int points) { score_ += points; }
 int Player::getScore() const { return score_; }
 std::string Player::getName() const { return name_; }
 bool Player::isRackFull() const { return rack_.size() >= MAX_RACK_SIZE; }
-int Player::getRackSize() const { return rack_.size(); }
 
 void Player::serialize(std::ofstream& file) const {
     file << name_ << "\n";
     file << score_ << "\n";
     for (const auto& tile : rack_) {
-        file << tile.getLetter() << " " << tile.getValue() << " " << tile.isBlank() << " ";
+        file << (tile.isBlank() ? '?' : tile.getLetter()) << " ";
     }
     file << "\n";
 }
 
 void Player::deserialize(std::ifstream& file) {
     rack_.clear();
-    std::string name;
-    std::getline(file, name);
-    name_ = name;
+    std::getline(file, name_);
     file >> score_;
-    file.ignore();
+    file.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Safely ignore rest of line
+
+    std::string rackData;
+    std::getline(file, rackData);
+    std::stringstream ss(rackData);
     char letter;
-    int value;
-    bool isBlank;
-    while (file >> letter >> value >> isBlank) {
-        rack_.emplace_back(letter, value, isBlank);
+    while(ss >> letter) {
+        if(letter == '?') {
+            addToRack(Tile(' ', 0, true));
+        } else {
+            addToRack(Tile(letter, Tile::getDefaultScore(letter)));
+        }
     }
 }

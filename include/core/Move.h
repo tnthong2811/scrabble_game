@@ -9,7 +9,7 @@ public:
 
     // Constructor
     Move(const std::string& word, int row, int col, Direction dir);
-    
+    Move();
     // Getters
     const std::string& getWord() const;
     int getRow() const;

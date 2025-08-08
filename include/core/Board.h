@@ -1,10 +1,29 @@
 #pragma once
-#include "Tile.h"
-#include "Move.h"
+
 #include <vector>
-#include <unordered_set>
 #include <string>
+#include <unordered_set>
 #include <fstream>
+#include "core/Tile.h"
+#include "core/Move.h"
+#include "core/dictionary/trie_dictionary.hpp"
+
+// Struct này sẽ chứa kết quả chi tiết của việc phân tích một nước đi
+struct MoveResult {
+    bool isValid = false;
+    int score = 0;
+    std::vector<std::string> wordsFormed;
+    std::string errorMessage;
+
+    // Hàm tiện ích để tạo nhanh một kết quả không hợp lệ
+    static MoveResult Invalid(const std::string& reason) {
+        MoveResult result;
+        result.isValid = false;
+        result.errorMessage = reason;
+        return result;
+    }
+};
+
 class Board {
 public:
     static const int SIZE = 15;
@@ -15,50 +34,44 @@ public:
     };
 
     struct Cell {
-        bool hasTile() const { return letter != ' '; }
         bool isPremiumUsed = false;
         CellType type = CellType::NORMAL;
-        char letter = ' ';
-        Tile tile; // Lưu Tile tại ô
+        Tile tile;
+
+        bool hasTile() const {
+            return tile.getLetter() != ' ';
+        }
     };
 
-    // === Constructors ===
+    // === Constructors & Setup ===
     Board();
+    void reset();
 
-    // === Core Gameplay ===
-    bool placeTile(int row, int col, Tile tile); // Đặt 1 tile
-    bool placeWord(const std::string& word, int row, int col, bool horizontal);
-    Tile removeTile(int row, int col);           // Gỡ tile (undo)
-    void reset();                                // Reset bàn cờ
-    void serialize(std::ofstream& file) const;   // Lưu trạng thái
-    void deserialize(std::ifstream& file);       // Tải trạng thái
+    // === HÀM CÔNG KHAI MỚI - LOGIC CHÍNH ===
+    MoveResult validateAndScoreMove(const Move& move, const TrieDictionary& dictionary) const;
+    void executeMove(const Move& move);
 
-    // === State Queries ===
-    bool isEmpty() const;                       // Bàn trống?
-    bool hasTile(int row, int col) const;       // Ô có tile?
-    char getTileLetter(int row, int col) const; // Lấy ký tự (trả về ' ' nếu trống)
-    bool isValidPosition(int row, int col) const; // Ô hợp lệ?
-    const Cell& getCell(int row, int col) const; // Thêm phương thức getCell
-
-    // === Word Validation ===
-    bool isAnchor(int row, int col) const;      // Ô có phải điểm neo?
-    bool isWordConnected(const std::string& word, int row, int col, bool horizontal) const;
-    std::vector<std::string> findNewWords(const std::string& mainWord, int row, int col, bool horizontal) const;
-
-    // === Scoring ===
-    int calculateWordScore(const std::string& word, int row, int col, bool horizontal) const;
-
-    // === Premium Squares ===
-    CellType getCellType(int row, int col) const;
-    void markPremiumUsed(int row, int col);     // Đánh dấu ô premium đã dùng
-
-    // === Board Analysis ===
-    std::unordered_set<std::string> getAllWords() const;
-    bool canPlaceWord(const Move& move) const;
-    int calculateScore(const Move& move) const;
-
+    // === State Queries (Các hàm truy vấn trạng thái vẫn hữu ích) ===
+    bool isEmpty() const;
+    bool hasTile(int row, int col) const;
+    char getTileLetter(int row, int col) const;
+    bool isValidPosition(int row, int col) const;
+    const Cell& getCell(int row, int col) const;
+    // *** THÊM LẠI HÀM NÀY ĐỂ SỬA LỖI BIÊN DỊCH ***
+    // Hàm này rất cần thiết cho AI để tìm nước đi hiệu quả.
+    bool isAnchor(int row, int col) const;
     bool isAdjacentToTile(int row, int col) const;
+    // === Serialization ===
+    void serialize(std::ofstream& file) const;
+    void deserialize(std::ifstream& file);
+
 private:
-    std::vector<std::vector<Cell>> grid_; // Sử dụng vector Cell thay vì Tile
+    std::vector<std::vector<Cell>> grid_;
+    
+    // === Private Helpers ===
+    int calculateScoreForSingleWord(const std::string& word, int startRow, int startCol, bool isHorizontal) const;
     void initializePremiumSquares();
+    std::string getWordAt(int row, int col, bool horizontal) const;
+    bool placeTile(int row, int col, Tile tile);
+    void markPremiumUsed(int row, int col);
 };
