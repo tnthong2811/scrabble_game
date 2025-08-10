@@ -17,7 +17,7 @@ public:
     void removeTilesFromRack(const std::string& word);
     bool hasLetter(char letter) const;
     bool canFormWord(const std::string& word) const;
-
+    std::string findTwoLetterWord() const; // Thêm hàm này
     // === Game Actions ===
     bool swapTiles(TileBag& bag, const std::vector<char>& letters);
 

@@ -48,9 +48,33 @@ void Game::processAITurn() {
     if (!aiPlayer) return;
     std::cout << "\n--- Den luot cua " << aiPlayer->getName() << " ---" << std::endl;
 
+    // *** DEBUG: ÉP NƯỚC ĐI ĐẦU TIÊN CHO AI ***
+    if (board_.isEmpty()) {
+        std::cout << "Ban co trong, AI di nuoc dau tien..." << std::endl;
+        
+        // Cố gắng tìm một từ 2 chữ cái đơn giản từ khay của AI
+        std::string firstWord = aiPlayer->findTwoLetterWord();
+        
+        if (!firstWord.empty()) {
+            std::cout << "AI se thu di tu: " << firstWord << std::endl;
+            // Gọi trực tiếp playWord, vì lượt đầu tiên wordFromRack == fullWord
+            // Chữ ký: playWord(id, wordFromRack, fullWord, row, col, isHorizontal)
+            playWord(currentPlayerId_, firstWord, firstWord, 7, 7, true);
+        } else {
+             std::cout << "AI khong co chu de di nuoc dau tien, bo luot." << std::endl;
+             passTurn(currentPlayerId_);
+        }
+        return; // Kết thúc lượt của AI sau khi đã đi nước ép buộc
+    }
+    // *** KẾT THÚC DEBUG ***
+
+
+    // Logic AI bình thường cho các lượt tiếp theo
     Play bestPlay = ai_->generatePlay(board_, aiPlayer->getRack());
+
     if (bestPlay.isPass()) {
-        passTurn(currentPlayerId_); return;
+        passTurn(currentPlayerId_);
+        return;
     }
     
     Move aiMove = bestPlay.getMove();
@@ -63,12 +87,14 @@ void Game::processAITurn() {
         aiPlayer->removeTilesFromRack(result.lettersUsedFromRack);
         refillRack(*aiPlayer);
         consecutivePasses_ = 0;
+        nextTurn();
     } else {
         std::cout << "Nuoc di cua AI khong hop le: " << result.errorMessage << ". AI bo luot." << std::endl;
         consecutivePasses_++;
+        nextTurn();
     }
-    nextTurn();
 }
+
 
 void Game::nextTurn() {
     if (state_ != State::PLAYING) return;
@@ -226,3 +252,21 @@ Player* Game::getPlayer(int id) const {
 }
 int Game::getCurrentPlayerId() const { return currentPlayerId_; }
 const TileBag& Game::getTileBag() const { return tileBag_; }
+
+std::string Player::findTwoLetterWord() const {
+    if (rack_.size() < 2) return "";
+
+    // Cố gắng tìm 2 ô chữ thường (không phải blank)
+    for (size_t i = 0; i < rack_.size(); ++i) {
+        if (rack_[i].isBlank()) continue;
+        for (size_t j = 0; j < rack_.size(); ++j) {
+            if (i == j || rack_[j].isBlank()) continue;
+            
+            std::string word = "";
+            word += rack_[i].getLetter();
+            word += rack_[j].getLetter();
+            return word; // Trả về từ 2 chữ cái đầu tiên tìm được
+        }
+    }
+    return ""; // Không tìm thấy 2 ô chữ thường
+}
