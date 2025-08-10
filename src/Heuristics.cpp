@@ -29,10 +29,10 @@ float AdvancedHeuristic::evaluate(const Play& play,
         const auto& cell = board.getCell(row, col);
         if (!cell.isPremiumUsed) { 
             switch (cell.type) { 
-                case Board::CellType::DOUBLE_LETTER: score += 0.5f; break;
-                case Board::CellType::TRIPLE_LETTER: score += 1.0f; break;
-                case Board::CellType::DOUBLE_WORD: score += 1.5f; break;
-                case Board::CellType::TRIPLE_WORD: score += 2.5f; break;
+                case CellType::DOUBLE_LETTER: score += 0.5f; break;
+                case CellType::TRIPLE_LETTER: score += 1.0f; break;
+                case CellType::DOUBLE_WORD: score += 1.5f; break;
+                case CellType::TRIPLE_WORD: score += 2.5f; break;
                 default: break;
             }
         }
@@ -50,8 +50,8 @@ float AdvancedHeuristic::evaluate(const Play& play,
         const auto& cell = board.getCell(row, col);
         if (!cell.hasTile()) { 
             auto cellType = cell.type;
-            if (cellType == Board::CellType::DOUBLE_WORD || cellType == Board::CellType::TRIPLE_WORD) {
-                score -= 2.0f * (cellType == Board::CellType::TRIPLE_WORD ? 1.5f : 1.0f) * riskFactor_;
+            if (cellType == CellType::DOUBLE_WORD || cellType == CellType::TRIPLE_WORD) {
+                score -= 2.0f * (cellType == CellType::TRIPLE_WORD ? 1.5f : 1.0f) * riskFactor_;
             }
         }
     }

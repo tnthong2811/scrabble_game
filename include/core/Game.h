@@ -15,18 +15,20 @@ public:
     void startNewGame(int aiCount = 1);
     void endGame();
 
-    // Player actions
-    bool playWord(int playerId, const std::string& word, int row, int col, bool horizontal);
+    // *** SỬA LỖI: Cập nhật chữ ký hàm này để khớp với GameUI và Game.cpp ***
+    bool playWord(int playerId, const std::string& wordFromRack, const std::string& fullWord, int row, int col, bool horizontal);
+    
     bool swapTiles(int playerId, const std::vector<char>& letters);
     void passTurn(int playerId);
 
     // Game flow
     void nextTurn();
+    void update();
 
     // Getters
     State getState() const;
     const Board& getBoard() const;
-    Player* getPlayer(int id) const; // Trả về con trỏ để dễ quản lý
+    Player* getPlayer(int id) const;
     int getCurrentPlayerId() const;
     const TileBag& getTileBag() const;
 
@@ -39,11 +41,10 @@ private:
     TrieDictionary dictionary_;
     TileBag tileBag_;
     std::vector<std::unique_ptr<Player>> players_;
-    // Thêm đối tượng AI làm thành viên của Game để quản lý tập trung
     std::unique_ptr<AI::ScrabbleAI> ai_;
     int currentPlayerId_;
     State state_;
-    int consecutivePasses_ = 0; // Thêm biến đếm lượt bỏ qua liên tiếp
+    int consecutivePasses_ = 0;
 
     // Helper methods
     void setupPlayers(int aiCount);

@@ -4,32 +4,86 @@
 #include <fstream>
 #include <sstream>
 
-Game::Game() : currentPlayerId_(0), state_(State::NOT_STARTED) {}
+Game::Game() : currentPlayerId_(0), state_(State::NOT_STARTED), consecutivePasses_(0) {}
 
 void Game::startNewGame(int aiCount) {
     board_.reset();
     tileBag_.reset();
-    consecutivePasses_ = 0; // Reset bộ đếm bỏ lượt
+    consecutivePasses_ = 0;
+    if (!dictionary_.load("assets/dictionary/dictionary.txt")) {
+        std::cerr << "LỖI: Không thể tải từ điển." << std::endl;
+        state_ = State::GAME_OVER; return;
+    }
+    ai_ = std::make_unique<AI::ScrabbleAI>(AI::Difficulty::MEDIUM, dictionary_);
+    setupPlayers(aiCount);
+    for (auto& player : players_) { if(player) refillRack(*player); }
+    state_ = State::PLAYING;
+    currentPlayerId_ = 1; // AI đi trước
+}
 
-    // Load từ điển một lần khi bắt đầu game
-    // Hãy đảm bảo file "dictionary.txt" nằm ở đúng vị trí mà chương trình có thể đọc được
-    if (!dictionary_.load("dictionary.txt")) {
-        std::cerr << "LỖI NGHIÊM TRỌNG: Không thể tải file từ điển 'dictionary.txt'." << std::endl;
+bool Game::playWord(int playerId, const std::string& wordFromRack, const std::string& fullWord, int row, int col, bool horizontal) {
+    if (state_ != State::PLAYING || playerId != currentPlayerId_) return false;
+    Player* player = getPlayer(playerId);
+    if (!player) return false;
+
+    Move move(fullWord, row, col, horizontal ? Move::Direction::HORIZONTAL : Move::Direction::VERTICAL);
+    MoveResult result = board_.validateAndScoreMove(move, *player, dictionary_);
+
+    if (result.isValid) {
+        board_.executeMove(move);
+        player->addScore(result.score);
+        player->removeTilesFromRack(result.lettersUsedFromRack);
+        refillRack(*player);
+        consecutivePasses_ = 0;
+        nextTurn();
+        return true;
+    } else {
+        std::cout << "Nuoc di khong hop le: " << result.errorMessage << std::endl;
+        return false;
+    }
+}
+
+void Game::processAITurn() {
+    Player* aiPlayer = getPlayer(currentPlayerId_);
+    if (!aiPlayer) return;
+    std::cout << "\n--- Den luot cua " << aiPlayer->getName() << " ---" << std::endl;
+
+    Play bestPlay = ai_->generatePlay(board_, aiPlayer->getRack());
+    if (bestPlay.isPass()) {
+        passTurn(currentPlayerId_); return;
+    }
+    
+    Move aiMove = bestPlay.getMove();
+    MoveResult result = board_.validateAndScoreMove(aiMove, *aiPlayer, dictionary_);
+
+    if (result.isValid) {
+        std::cout << "Nuoc di cua AI hop le! Tu: '" << aiMove.getWord() << "'. Diem: " << result.score << std::endl;
+        board_.executeMove(aiMove);
+        aiPlayer->addScore(result.score);
+        aiPlayer->removeTilesFromRack(result.lettersUsedFromRack);
+        refillRack(*aiPlayer);
+        consecutivePasses_ = 0;
+    } else {
+        std::cout << "Nuoc di cua AI khong hop le: " << result.errorMessage << ". AI bo luot." << std::endl;
+        consecutivePasses_++;
+    }
+    nextTurn();
+}
+
+void Game::nextTurn() {
+    if (state_ != State::PLAYING) return;
+    if (checkGameEnd()) {
+        calculateFinalScores();
         state_ = State::GAME_OVER;
         return;
     }
+    currentPlayerId_ = (currentPlayerId_ + 1) % players_.size();
+}
 
-    // Khởi tạo AI với độ khó mong muốn
-    // Bạn có thể thay đổi độ khó ở đây (EASY, MEDIUM, HARD)
-    ai_ = std::make_unique<AI::ScrabbleAI>(AI::Difficulty::HARD, dictionary_);
-
-    setupPlayers(aiCount);
-    for (auto& player : players_) {
-        if(player) refillRack(*player);
+void Game::update() {
+    if (state_ == State::PLAYING && currentPlayerId_ != 0) {
+        processAITurn();
     }
-
-    state_ = State::PLAYING;
-    currentPlayerId_ = 0;
 }
 
 void Game::setupPlayers(int aiCount) {
@@ -41,108 +95,6 @@ void Game::setupPlayers(int aiCount) {
     }
 }
 
-bool Game::playWord(int playerId, const std::string& word, int row, int col, bool horizontal) {
-    if (state_ != State::PLAYING || playerId != currentPlayerId_) {
-        // Không phải lượt của người chơi này
-        return false;
-    }
-
-    Player* player = getPlayer(playerId);
-    if (!player) return false;
-
-    // Kiểm tra sơ bộ xem người chơi có đủ chữ cái không
-    if (!player->canFormWord(word)) {
-        std::cout << "Nước đi không hợp lệ: Bạn không có đủ chữ cái để tạo từ '" << word << "'." << std::endl;
-        return false;
-    }
-
-    Move move(word, row, col, horizontal ? Move::Direction::HORIZONTAL : Move::Direction::VERTICAL);
-
-    // BƯỚC 1: Yêu cầu Board kiểm tra và tính điểm bằng logic mới
-    MoveResult result = board_.validateAndScoreMove(move, dictionary_);
-
-    // BƯỚC 2: Xử lý kết quả
-    if (result.isValid) {
-        std::cout << "Nước đi hợp lệ! Điểm số: " << result.score << std::endl;
-        for(const auto& w : result.wordsFormed) {
-            std::cout << " -> Từ được tạo: " << w << std::endl;
-        }
-
-        // BƯỚC 3: Thực thi nước đi lên bàn cờ thật
-        board_.executeMove(move);
-
-        // BƯỚC 4: Cập nhật trạng thái người chơi
-        player->addScore(result.score);
-        player->removeTilesFromRack(word);
-        refillRack(*player);
-
-        consecutivePasses_ = 0; // Reset bộ đếm bỏ lượt khi có nước đi thành công
-        nextTurn();
-        return true;
-    } else {
-        // Thông báo lỗi nếu nước đi không hợp lệ
-        std::cout << "Nước đi không hợp lệ: " << result.errorMessage << std::endl;
-        return false;
-    }
-}
-
-void Game::nextTurn() {
-    if (state_ != State::PLAYING) return;
-
-    // Luôn kiểm tra điều kiện kết thúc game trước khi chuyển lượt
-    if (checkGameEnd()) {
-        calculateFinalScores();
-        state_ = State::GAME_OVER;
-        endGame();
-        return;
-    }
-
-    currentPlayerId_ = (currentPlayerId_ + 1) % players_.size();
-
-    // Nếu là lượt của AI, tự động xử lý
-    // So sánh tên để xác định có phải AI hay không
-    if (getPlayer(currentPlayerId_) && getPlayer(currentPlayerId_)->getName().rfind("AI", 0) == 0) {
-        processAITurn();
-    }
-}
-
-void Game::processAITurn() {
-    Player* aiPlayer = getPlayer(currentPlayerId_);
-    if (!aiPlayer) return;
-
-    std::cout << "\n--- Đến lượt của " << aiPlayer->getName() << " ---" << std::endl;
-
-    // AI vẫn dùng logic của nó để tìm nước đi tốt nhất
-    // Lưu ý: Giả định ScrabbleAI có hàm generatePlay trả về đối tượng Play
-    Play bestPlay = ai_->generatePlay(board_, aiPlayer->getRack());
-
-    // Nếu AI quyết định bỏ lượt
-    if (bestPlay.isPass()) {
-        std::cout << aiPlayer->getName() << " đã bỏ lượt." << std::endl;
-        passTurn(currentPlayerId_); // Gọi passTurn để xử lý
-        return;
-    }
-
-    Move aiMove = bestPlay.getMove();
-    std::cout << aiPlayer->getName() << " định đi từ '" << aiMove.getWord() << "'." << std::endl;
-
-    // Game sẽ kiểm tra lại nước đi của AI bằng logic chuẩn của Board
-    MoveResult result = board_.validateAndScoreMove(aiMove, dictionary_);
-
-    if (result.isValid) {
-        std::cout << "Nước đi của AI hợp lệ! Điểm thực tế: " << result.score << std::endl;
-        board_.executeMove(aiMove);
-        aiPlayer->addScore(result.score);
-        aiPlayer->removeTilesFromRack(aiMove.getWord());
-        refillRack(*aiPlayer);
-        consecutivePasses_ = 0; // Reset bộ đếm bỏ lượt
-    } else {
-        // Nếu vì lý do nào đó nước đi của AI không hợp lệ, AI sẽ bị mất lượt
-        std::cout << "Tuy nhiên, nước đi của AI không hợp lệ: " << result.errorMessage << ". AI bỏ lượt." << std::endl;
-        consecutivePasses_++;
-    }
-    nextTurn();
-}
 
 bool Game::swapTiles(int playerId, const std::vector<char>& letters) {
     if (state_ != State::PLAYING || playerId != currentPlayerId_ || playerId != 0) {

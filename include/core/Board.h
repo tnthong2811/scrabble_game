@@ -1,77 +1,72 @@
 #pragma once
-
+#include "Tile.h"
+#include "Move.h"
+#include "dictionary/trie_dictionary.hpp"
 #include <vector>
 #include <string>
-#include <unordered_set>
 #include <fstream>
-#include "core/Tile.h"
-#include "core/Move.h"
-#include "core/dictionary/trie_dictionary.hpp"
 
-// Struct này sẽ chứa kết quả chi tiết của việc phân tích một nước đi
+// Định nghĩa các loại ô đặc biệt trên bàn cờ
+enum class CellType { NORMAL, DOUBLE_LETTER, TRIPLE_LETTER, DOUBLE_WORD, TRIPLE_WORD, CENTER };
+
+// Định nghĩa cấu trúc để trả về kết quả của một nước đi
 struct MoveResult {
     bool isValid = false;
     int score = 0;
-    std::vector<std::string> wordsFormed;
     std::string errorMessage;
+    std::vector<std::string> wordsFormed;
+    std::string lettersUsedFromRack;
 
-    // Hàm tiện ích để tạo nhanh một kết quả không hợp lệ
-    static MoveResult Invalid(const std::string& reason) {
-        MoveResult result;
-        result.isValid = false;
-        result.errorMessage = reason;
-        return result;
+    static MoveResult Invalid(const std::string& msg) {
+        MoveResult res;
+        res.isValid = false;
+        res.errorMessage = msg;
+        return res;
     }
 };
+
+// Khai báo trước lớp Player để tránh lỗi biên dịch vòng tròn
+class Player;
 
 class Board {
 public:
     static const int SIZE = 15;
 
-    enum class CellType {
-        NORMAL, DOUBLE_LETTER, TRIPLE_LETTER,
-        DOUBLE_WORD, TRIPLE_WORD, CENTER
-    };
-
     struct Cell {
-        bool isPremiumUsed = false;
-        CellType type = CellType::NORMAL;
         Tile tile;
-
-        bool hasTile() const {
-            return tile.getLetter() != ' ';
-        }
+        CellType type = CellType::NORMAL;
+        bool isPremiumUsed = false;
+        bool hasTile() const { return tile.getLetter() != ' ' && tile.getLetter() != '?'; }
     };
-
-    // === Constructors & Setup ===
+    
     Board();
     void reset();
 
-    // === HÀM CÔNG KHAI MỚI - LOGIC CHÍNH ===
-    MoveResult validateAndScoreMove(const Move& move, const TrieDictionary& dictionary) const;
+    MoveResult validateAndScoreMove(const Move& move, const Player& player, const TrieDictionary& dictionary) const;
     void executeMove(const Move& move);
-
-    // === State Queries (Các hàm truy vấn trạng thái vẫn hữu ích) ===
-    bool isEmpty() const;
+    // Thêm vào phần public
+    void placeTileForAI(int row, int col, Tile tile);
+    // === Các hàm Getters công khai cho UI và AI ===
     bool hasTile(int row, int col) const;
-    char getTileLetter(int row, int col) const;
-    bool isValidPosition(int row, int col) const;
     const Cell& getCell(int row, int col) const;
-    // *** THÊM LẠI HÀM NÀY ĐỂ SỬA LỖI BIÊN DỊCH ***
-    // Hàm này rất cần thiết cho AI để tìm nước đi hiệu quả.
+    bool isEmpty() const;
     bool isAnchor(int row, int col) const;
-    bool isAdjacentToTile(int row, int col) const;
+    std::string getWordAt(int row, int col, bool horizontal) const;
+    bool isValidPosition(int row, int col) const;
+    char getTileLetter(int row, int col) const;
+
     // === Serialization ===
     void serialize(std::ofstream& file) const;
     void deserialize(std::ifstream& file);
 
 private:
     std::vector<std::vector<Cell>> grid_;
-    
-    // === Private Helpers ===
-    int calculateScoreForSingleWord(const std::string& word, int startRow, int startCol, bool isHorizontal) const;
+
+    // === Các hàm Private Helpers ===
     void initializePremiumSquares();
-    std::string getWordAt(int row, int col, bool horizontal) const;
+    bool isAdjacentToTile(int row, int col) const;
+    // *** THAY ĐỔI DUY NHẤT: Cập nhật chữ ký hàm này để khớp với file .cpp ***
+    int calculateScoreForSingleWord(const Move& move, const std::string& word, int startRow, int startCol, bool isHorizontal) const;
     bool placeTile(int row, int col, Tile tile);
     void markPremiumUsed(int row, int col);
 };

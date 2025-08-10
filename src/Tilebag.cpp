@@ -1,53 +1,120 @@
 #include "core/TileBag.h"
 #include <algorithm>
 #include <sstream>
-#include <chrono>
+#include <random>
 #include <stdexcept>
 
 namespace TileDistributions {
     const std::vector<Tile> STANDARD_ENGLISH = {
-        Tile(' ', 0, true), Tile(' ', 0, true),
-        Tile('A', 1), Tile('A', 1), Tile('A', 1), Tile('A', 1), Tile('A', 1), Tile('A', 1), Tile('A', 1), Tile('A', 1), Tile('A', 1),
-        Tile('B', 3), Tile('B', 3),
-        Tile('C', 3), Tile('C', 3),
-        Tile('D', 2), Tile('D', 2), Tile('D', 2), Tile('D', 2),
-        Tile('E', 1), Tile('E', 1), Tile('E', 1), Tile('E', 1), Tile('E', 1), Tile('E', 1), Tile('E', 1), Tile('E', 1), Tile('E', 1), Tile('E', 1), Tile('E', 1), Tile('E', 1),
-        Tile('F', 4), Tile('F', 4),
-        Tile('G', 2), Tile('G', 2), Tile('G', 2),
-        Tile('H', 4), Tile('H', 4),
-        Tile('I', 1), Tile('I', 1), Tile('I', 1), Tile('I', 1), Tile('I', 1), Tile('I', 1), Tile('I', 1), Tile('I', 1), Tile('I', 1),
-        Tile('J', 8),
-        Tile('K', 5),
-        Tile('L', 1), Tile('L', 1), Tile('L', 1), Tile('L', 1),
-        Tile('M', 3), Tile('M', 3),
-        Tile('N', 1), Tile('N', 1), Tile('N', 1), Tile('N', 1), Tile('N', 1), Tile('N', 1),
-        Tile('O', 1), Tile('O', 1), Tile('O', 1), Tile('O', 1), Tile('O', 1), Tile('O', 1), Tile('O', 1), Tile('O', 1),
-        Tile('P', 3), Tile('P', 3),
-        Tile('Q', 10),
-        Tile('R', 1), Tile('R', 1), Tile('R', 1), Tile('R', 1), Tile('R', 1), Tile('R', 1),
-        Tile('S', 1), Tile('S', 1), Tile('S', 1), Tile('S', 1),
-        Tile('T', 1), Tile('T', 1), Tile('T', 1), Tile('T', 1), Tile('T', 1), Tile('T', 1),
-        Tile('U', 1), Tile('U', 1), Tile('U', 1), Tile('U', 1),
-        Tile('V', 4), Tile('V', 4),
-        Tile('W', 4), Tile('W', 4),
-        Tile('X', 8),
-        Tile('Y', 4), Tile('Y', 4),
-        Tile('Z', 10)
+        Tile(' ', 0, true), Tile(' ', 0, true),  // Blank tiles (dùng ' ' để rõ ràng, constructor sẽ override thành '?')
+
+        // A's (9 tiles)
+        Tile('A', 1, false), Tile('A', 1, false), Tile('A', 1, false), Tile('A', 1, false), Tile('A', 1, false),
+        Tile('A', 1, false), Tile('A', 1, false), Tile('A', 1, false), Tile('A', 1, false),
+
+        // B's (2)
+        Tile('B', 3, false), Tile('B', 3, false),
+
+        // C's (2)
+        Tile('C', 3, false), Tile('C', 3, false),
+
+        // D's (4)
+        Tile('D', 2, false), Tile('D', 2, false), Tile('D', 2, false), Tile('D', 2, false),
+
+        // E's (12)
+        Tile('E', 1, false), Tile('E', 1, false), Tile('E', 1, false), Tile('E', 1, false), Tile('E', 1, false),
+        Tile('E', 1, false), Tile('E', 1, false), Tile('E', 1, false), Tile('E', 1, false), Tile('E', 1, false),
+        Tile('E', 1, false), Tile('E', 1, false),
+
+        // F's (2)
+        Tile('F', 4, false), Tile('F', 4, false),
+
+        // G's (3)
+        Tile('G', 2, false), Tile('G', 2, false), Tile('G', 2, false),
+
+        // H's (2)
+        Tile('H', 4, false), Tile('H', 4, false),
+
+        // I's (9)
+        Tile('I', 1, false), Tile('I', 1, false), Tile('I', 1, false), Tile('I', 1, false), Tile('I', 1, false),
+        Tile('I', 1, false), Tile('I', 1, false), Tile('I', 1, false), Tile('I', 1, false),
+
+        // J (1)
+        Tile('J', 8, false),
+
+        // K (1)
+        Tile('K', 5, false),
+
+        // L's (4)
+        Tile('L', 1, false), Tile('L', 1, false), Tile('L', 1, false), Tile('L', 1, false),
+
+        // M's (2)
+        Tile('M', 3, false), Tile('M', 3, false),
+
+        // N's (6)
+        Tile('N', 1, false), Tile('N', 1, false), Tile('N', 1, false), Tile('N', 1, false), Tile('N', 1, false), Tile('N', 1, false),
+
+        // O's (8)
+        Tile('O', 1, false), Tile('O', 1, false), Tile('O', 1, false), Tile('O', 1, false), Tile('O', 1, false),
+        Tile('O', 1, false), Tile('O', 1, false), Tile('O', 1, false),
+
+        // P's (2)
+        Tile('P', 3, false), Tile('P', 3, false),
+
+        // Q (1)
+        Tile('Q', 10, false),
+
+        // R's (6)
+        Tile('R', 1, false), Tile('R', 1, false), Tile('R', 1, false), Tile('R', 1, false), Tile('R', 1, false), Tile('R', 1, false),
+
+        // S's (4)
+        Tile('S', 1, false), Tile('S', 1, false), Tile('S', 1, false), Tile('S', 1, false),
+
+        // T's (6)
+        Tile('T', 1, false), Tile('T', 1, false), Tile('T', 1, false), Tile('T', 1, false), Tile('T', 1, false), Tile('T', 1, false),
+
+        // U's (4)
+        Tile('U', 1, false), Tile('U', 1, false), Tile('U', 1, false), Tile('U', 1, false),
+
+        // V's (2)
+        Tile('V', 4, false), Tile('V', 4, false),
+
+        // W's (2)
+        Tile('W', 4, false), Tile('W', 4, false),
+
+        // X (1)
+        Tile('X', 8, false),
+
+        // Y's (2)
+        Tile('Y', 4, false), Tile('Y', 4, false),
+
+        // Z (1)
+        Tile('Z', 10, false)
     };
 }
 
 TileBag::TileBag() {
-    rng_.seed(std::chrono::system_clock::now().time_since_epoch().count());
-    initializeStandardSet();
-    shuffle();
+    // 1. Tạo một "master list" các ô chữ
+    initialSet_ = TileDistributions::STANDARD_ENGLISH;
+    // 2. Reset túi về trạng thái ban đầu
+    reset();
 }
 
 Tile TileBag::drawTile() {
-    if (isEmpty()) throw std::runtime_error("TileBag is empty");
-    Tile tile = tiles_.back();
+    if (isEmpty()) {
+        throw std::runtime_error("Attempted to draw from an empty tile bag.");
+    }
+
+    // Lấy ô chữ cuối cùng
+    Tile tileToDraw = tiles_.back();
+    // Xóa nó khỏi túi
     tiles_.pop_back();
-    updateLetterCounts(tile, -1);
-    return tile;
+
+    // Cập nhật bộ đếm
+    updateLetterCounts(tileToDraw, -1);
+
+    // Trả về ô chữ đã rút
+    return tileToDraw;
 }
 
 std::vector<Tile> TileBag::drawTiles(int count) {
@@ -78,12 +145,20 @@ void TileBag::shuffle() {
 }
 
 void TileBag::reset() {
+    // *** ĐÂY LÀ DÒNG QUAN TRỌNG NHẤT ***
+    // Sao chép toàn bộ các ô chữ từ "master list" vào túi chữ đang hoạt động
     tiles_ = initialSet_;
+
+    // Xáo trộn túi chữ
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(tiles_.begin(), tiles_.end(), g);
+
+    // Cập nhật lại bộ đếm chữ cái (nếu bạn cần)
     letterCounts_.clear();
-    for (const auto& tile : initialSet_) {
+    for(const auto& tile : tiles_){
         updateLetterCounts(tile, 1);
     }
-    shuffle();
 }
 
 bool TileBag::isEmpty() const {
@@ -128,13 +203,12 @@ bool TileBag::deserialize(const std::string& data) {
             char letter = token[0];
             bool isBlank = (letter == '?');
             if (isBlank) letter = ' ';
-            int value = std::stoi(token.substr(1));
-            
+            int value = (token.length() > 1) ? std::stoi(token.substr(1)) : Tile::getDefaultScore(letter);
             Tile tile(letter, value, isBlank);
             tiles_.push_back(tile);
             updateLetterCounts(tile, 1);
         } catch (const std::exception&) {
-            return false;
+            return false;  // File hỏng, fail load
         }
     }
     return true;

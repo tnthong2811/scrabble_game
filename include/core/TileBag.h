@@ -44,7 +44,7 @@ public:
 private:
     std::vector<Tile> tiles_;
     std::vector<Tile> initialSet_;
-    std::mt19937 rng_;
+    std::mt19937 rng_{std::random_device{}()}; 
     std::map<char, int> letterCounts_;
 
     void initializeStandardSet();

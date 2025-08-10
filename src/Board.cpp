@@ -1,4 +1,5 @@
 #include "core/Board.h"
+#include "core/Player.h"
 #include <set> // Dùng std::set để tự động loại bỏ các từ bị trùng lặp
 #include <algorithm>
 #include <cctype>
@@ -15,20 +16,17 @@
  * @return Một đối tượng MoveResult chứa kết quả phân tích.
  */
 
-// Hàm phụ trợ mới để tính điểm cho một từ duy nhất
-int Board::calculateScoreForSingleWord(const std::string& word, int startRow, int startCol, bool isHorizontal) const {
+int Board::calculateScoreForSingleWord(const Move& move, const std::string& word, int startRow, int startCol, bool isHorizontal) const {
     int currentWordScore = 0;
     int wordMultiplier = 1;
 
     for (size_t i = 0; i < word.length(); ++i) {
         int r = startRow + (isHorizontal ? 0 : i);
         int c = startCol + (isHorizontal ? i : 0);
-        
         int letterScore = Tile::getDefaultScore(word[i]);
-
-        // Chỉ áp dụng bonus nếu ô đó trên BÀN CỜ THẬT chưa được dùng
-        // và chữ cái được đặt xuống ở lượt này
-        if (!this->grid_[r][c].hasTile()) { // Kiểm tra xem đây có phải là ô mới được đặt không
+        
+        // Chỉ áp dụng bonus nếu ô đó chưa có tile (tức là tile mới được đặt)
+        if (!this->hasTile(r, c)) { 
             switch(this->grid_[r][c].type) {
                 case CellType::DOUBLE_LETTER: letterScore *= 2; break;
                 case CellType::TRIPLE_LETTER: letterScore *= 3; break;
@@ -44,38 +42,34 @@ int Board::calculateScoreForSingleWord(const std::string& word, int startRow, in
     return currentWordScore * wordMultiplier;
 }
 
-MoveResult Board::validateAndScoreMove(const Move& move, const TrieDictionary& dictionary) const {
-    // ---- BƯỚC 1: KIỂM TRA CƠ BẢN VÀ TẠO BÀN CỜ TẠM ----
-    Board tempBoard = *this; // Tạo bản sao để thao tác, không ảnh hưởng bàn cờ thật.
-    int tilesPlacedCount = 0;
+MoveResult Board::validateAndScoreMove(const Move& move, const Player& player, const TrieDictionary& dictionary) const {
+    Board tempBoard = *this;
+    std::string lettersFromRack;
+    std::string fullWord = move.getWord();
+    bool isHorizontal = move.getDirection() == Move::Direction::HORIZONTAL;
 
-    // Đặt các chữ cái của nước đi lên bàn cờ tạm
-    for (size_t i = 0; i < move.getWord().length(); ++i) {
-        int r = move.getRow() + (move.getDirection() == Move::Direction::HORIZONTAL ? 0 : i);
-        int c = move.getCol() + (move.getDirection() == Move::Direction::HORIZONTAL ? i : 0);
-
-        if (!isValidPosition(r, c)) return MoveResult::Invalid("Từ đặt ngoài bàn cờ.");
-        if (hasTile(r, c) && getTileLetter(r, c) != std::toupper(move.getWord()[i])) {
-            return MoveResult::Invalid("Từ đặt chồng lên chữ cái không khớp.");
-        }
-
-        if (!hasTile(r, c)) {
-            tilesPlacedCount++;
-            Tile newTile(move.getWord()[i], Tile::getDefaultScore(move.getWord()[i]));
-            tempBoard.grid_[r][c].tile = newTile; // Đặt trực tiếp lên grid của tempBoard
+    for (size_t i = 0; i < fullWord.length(); ++i) {
+        int r = move.getRow() + (isHorizontal ? 0 : i);
+        int c = move.getCol() + (isHorizontal ? i : 0);
+        if (!isValidPosition(r, c)) return MoveResult::Invalid("Tu dat ngoai ban co.");
+        if (!this->hasTile(r, c)) {
+            lettersFromRack += fullWord[i];
+            tempBoard.grid_[r][c].tile = Tile(fullWord[i], false);
+        } else if (this->getTileLetter(r, c) != fullWord[i]) {
+            return MoveResult::Invalid("Dat chong len chu cai khong khop.");
         }
     }
-
-    if (tilesPlacedCount == 0) {
-        return MoveResult::Invalid("Nước đi không đặt được chữ cái mới nào.");
+    
+    if (lettersFromRack.empty()) return MoveResult::Invalid("Nuoc di khong dat chu cai moi nao.");
+    if (!player.canFormWord(lettersFromRack)) {
+        return MoveResult::Invalid("Nguoi choi khong co du chu cai.");
     }
 
-    // ---- BƯỚC 2: KIỂM TRA LUẬT ĐẶT TỪ ----
-    if (isEmpty()) { // Lượt đầu tiên
+    if (this->isEmpty()) {
         if (!tempBoard.hasTile(SIZE / 2, SIZE / 2)) {
-            return MoveResult::Invalid("Lượt đầu tiên phải đi qua ô trung tâm (H8).");
+            return MoveResult::Invalid("Luot dau tien phai di qua o trung tam.");
         }
-    } else { // Các lượt tiếp theo
+    } else {
         bool isConnected = false;
         for (const auto& pos : move.getCoveredPositions()) {
             if (isAdjacentToTile(pos.first, pos.second)) {
@@ -83,103 +77,74 @@ MoveResult Board::validateAndScoreMove(const Move& move, const TrieDictionary& d
                 break;
             }
         }
-        if (!isConnected) {
-            return MoveResult::Invalid("Từ mới phải kết nối với một từ đã có trên bàn cờ.");
-        }
+        if (!isConnected) return MoveResult::Invalid("Tu moi phai ket noi voi mot tu da co.");
     }
-
-    // ---- BƯỚC 3: TÌM VÀ XÁC THỰC TẤT CẢ CÁC TỪ MỚI ----
+    
     std::set<std::string> allNewWords;
-    bool isHorizontal = move.getDirection() == Move::Direction::HORIZONTAL;
-
-    // Tìm từ chính (là từ dài nhất theo hướng đi)
+    int totalScore = 0;
     std::string mainWord = tempBoard.getWordAt(move.getRow(), move.getCol(), isHorizontal);
-    if (mainWord.length() > 1) {
-        allNewWords.insert(mainWord);
-    }
-
-    // Tìm các từ phụ (vuông góc với hướng đi) tại mỗi vị trí tile mới được đặt
-    for (size_t i = 0; i < move.getWord().length(); ++i) {
+    if(mainWord.length() > 1) allNewWords.insert(mainWord);
+    
+    for (size_t i = 0; i < fullWord.length(); ++i) {
         int r = move.getRow() + (isHorizontal ? 0 : i);
         int c = move.getCol() + (isHorizontal ? i : 0);
-        // Chỉ tìm từ phụ nếu vị trí này ban đầu trống
-        if (!this->hasTile(r, c)) {
+        if(!this->hasTile(r, c)) {
             std::string sideWord = tempBoard.getWordAt(r, c, !isHorizontal);
-            if (sideWord.length() > 1) {
-                allNewWords.insert(sideWord);
-            }
+            if(sideWord.length() > 1) allNewWords.insert(sideWord);
         }
     }
 
-    if (allNewWords.empty() && mainWord.length() <= 1) {
-         return MoveResult::Invalid("Nước đi không tạo thành từ nào hợp lệ (tối thiểu 2 chữ cái).");
-    }
+    if (allNewWords.empty()) return MoveResult::Invalid("Nuoc di khong tao thanh tu nao.");
 
-    // Kiểm tra tất cả các từ tìm được với từ điển
     for (const auto& word : allNewWords) {
         if (!dictionary.contains(word)) {
-            return MoveResult::Invalid("Từ '" + word + "' không có trong từ điển.");
+            return MoveResult::Invalid("Tu '" + word + "' khong co trong tu dien.");
         }
     }
 
-    // THAY THẾ TOÀN BỘ "BƯỚC 4" CŨ BẰNG KHỐI NÀY
-
-    // ---- BƯỚC 4: TÍNH ĐIỂM CHÍNH XÁC ----
-    int totalScore = 0;
-
-    // Tính điểm cho TẤT CẢ các từ mới tìm được (chính và phụ)
     for (const auto& word : allNewWords) {
-        // Để tính điểm đúng, ta cần tìm lại vị trí và hướng của mỗi từ trên bàn cờ tạm
-        // Đây là một cách đơn giản để làm điều đó:
         bool found = false;
-        for (int r = 0; r < SIZE && !found; ++r) {
-            for (int c = 0; c < SIZE && !found; ++c) {
-                // Kiểm tra theo chiều ngang
-                if (tempBoard.getWordAt(r, c, true) == word) {
-                    totalScore += calculateScoreForSingleWord(word, r, c, true);
-                    found = true;
-                }
-                // Kiểm tra theo chiều dọc
-                if (!found && tempBoard.getWordAt(r, c, false) == word) {
-                    totalScore += calculateScoreForSingleWord(word, r, c, false);
-                    found = true;
-                }
+        for (int r = 0; r < SIZE && !found; ++r) for (int c = 0; c < SIZE && !found; ++c) {
+            // *** SỬA LỖI: Truyền 'move' vào lời gọi hàm ***
+            if (tempBoard.getWordAt(r, c, true) == word) {
+                totalScore += calculateScoreForSingleWord(move, word, r, c, true); found = true;
+            } else if (tempBoard.getWordAt(r, c, false) == word) {
+                totalScore += calculateScoreForSingleWord(move, word, r, c, false); found = true;
             }
         }
     }
 
+    if (lettersFromRack.length() == 7) totalScore += 50;
 
-    // Thưởng 50 điểm nếu dùng hết 7 chữ (Bingo)
-    if (tilesPlacedCount == 7) {
-        totalScore += 50;
-    }
-
-    // ---- BƯỚC 5: TRẢ VỀ KẾT QUẢ ----
     MoveResult finalResult;
     finalResult.isValid = true;
     finalResult.score = totalScore;
+    finalResult.lettersUsedFromRack = lettersFromRack;
     finalResult.wordsFormed.assign(allNewWords.begin(), allNewWords.end());
-    finalResult.wordsFormed.push_back(mainWord);
     return finalResult;
+}
+
+void Board::executeMove(const Move& move) {
+    bool isHorizontal = move.getDirection() == Move::Direction::HORIZONTAL;
+    const std::string& word = move.getWord();
+
+    for (size_t i = 0; i < word.length(); ++i) {
+        int r = move.getRow() + (isHorizontal ? 0 : i);
+        int c = move.getCol() + (isHorizontal ? i : 0);
+
+        // Chỉ đặt một tile mới nếu ô đó trên bàn cờ thật đang trống.
+        // Điều này đảm bảo chúng ta không đặt đè lên các chữ cái đã có
+        // mà từ mới đang nối vào.
+        if (!this->hasTile(r, c)) {
+            Tile newTile(word[i], false); // Tạo tile mới, không phải blank
+            this->placeTile(r, c, newTile); // Sử dụng hàm helper để đặt tile và cập nhật isPremiumUsed
+        }
+    }
 }
 
 /**
  * @brief Thực thi một nước đi lên bàn cờ thật. Chỉ gọi hàm này sau khi đã validate thành công.
  */
-void Board::executeMove(const Move& move) {
-    for (size_t i = 0; i < move.getWord().length(); ++i) {
-        int r = move.getRow() + (move.getDirection() == Move::Direction::HORIZONTAL ? 0 : i);
-        int c = move.getCol() + (move.getDirection() == Move::Direction::HORIZONTAL ? i : 0);
-
-        if (!hasTile(r, c)) {
-            Tile newTile(move.getWord()[i], Tile::getDefaultScore(move.getWord()[i]));
-            // Sử dụng hàm placeTile nội bộ để đặt chữ và đánh dấu ô thưởng đã dùng
-            this->placeTile(r, c, newTile);
-        }
-    }
-}
-
-
 // =================================================================================
 // === CÁC HÀM PHỤ TRỢ =============================================================
 // =================================================================================
@@ -270,6 +235,11 @@ bool Board::isValidPosition(int row, int col) const {
     return row >= 0 && row < SIZE && col >= 0 && col < SIZE;
 }
 
+void Board::placeTileForAI(int row, int col, Tile tile) {
+    if (isValidPosition(row, col) && !hasTile(row, col)) {
+        grid_[row][col].tile = tile;
+    }
+}
 /**
  * @brief Kiểm tra xem một ô có phải là "điểm neo" hay không.
  * Điểm neo là một ô trống và nằm ngay cạnh một ô đã có chữ.

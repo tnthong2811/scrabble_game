@@ -1,7 +1,9 @@
 #include "core/Player.h"
 #include <algorithm>
 #include <cctype>
-#include <sstream> // Needed for deserialize
+#include <sstream>
+#include <iostream>
+#include <limits> // Cần cho deserialize
 
 Player::Player(const std::string& name) : name_(name), score_(0) {}
 
@@ -17,47 +19,23 @@ bool Player::addToRack(Tile tile) {
 
 void Player::removeTilesFromRack(const std::string& word) {
     std::string tempWord = word;
-    std::vector<Tile> newRack;
-    std::vector<bool> used(rack_.size(), false);
+    for (char c_word : tempWord) {
+        char upperC = std::toupper(c_word);
+        auto it = std::find_if(rack_.begin(), rack_.end(), [upperC](const Tile& t) {
+            return !t.isBlank() && t.getLetter() == upperC;
+        });
 
-    // Step 1: Use regular tiles first
-    for (size_t i = 0; i < tempWord.length(); ++i) {
-        char letter_to_find = std::toupper(tempWord[i]);
-        for (size_t j = 0; j < rack_.size(); ++j) {
-            if (!used[j] && !rack_[j].isBlank() && rack_[j].getLetter() == letter_to_find) {
-                used[j] = true;
-                tempWord[i] = '\0'; // Mark letter as used
-                break;
+        if (it != rack_.end()) {
+            rack_.erase(it);
+        } else {
+            auto blank_it = std::find_if(rack_.begin(), rack_.end(), [](const Tile& t) {
+                return t.isBlank();
+            });
+            if (blank_it != rack_.end()) {
+                rack_.erase(blank_it);
             }
         }
     }
-
-    // Step 2: Use blank tiles for any remaining letters
-    for (size_t i = 0; i < tempWord.length(); ++i) {
-        if (tempWord[i] != '\0') {
-             for (size_t j = 0; j < rack_.size(); ++j) {
-                if (!used[j] && rack_[j].isBlank()) {
-                    used[j] = true;
-                    break;
-                }
-            }
-        }
-    }
-
-    // Build the new rack from the tiles that were not used
-    for(size_t i=0; i < rack_.size(); ++i) {
-        if(!used[i]) {
-            newRack.push_back(rack_[i]);
-        }
-    }
-    rack_ = newRack;
-}
-
-bool Player::hasLetter(char letter) const {
-    char upperC = std::toupper(letter);
-    return std::any_of(rack_.begin(), rack_.end(), [upperC](const Tile& t) {
-        return t.getLetter() == upperC || t.isBlank();
-    });
 }
 
 bool Player::canFormWord(const std::string& word) const {
@@ -90,16 +68,13 @@ bool Player::swapTiles(TileBag& bag, const std::vector<char>& letters) {
 
     std::vector<Tile> tilesToReturn;
     for(char c : letters) {
-        tilesToReturn.emplace_back(c, Tile::getDefaultScore(c));
+        // Tạo lại tile với isBlank=false vì chúng là các chữ cái cụ thể
+        tilesToReturn.emplace_back(c, false);
     }
 
-    // Remove the tiles from this player's rack
     removeTilesFromRack(wordFromLetters);
-
-    // Return the tiles to the bag
     bag.returnTiles(tilesToReturn);
 
-    // The Game class is responsible for refilling the rack after this returns true
     return true;
 }
 
@@ -112,26 +87,34 @@ void Player::serialize(std::ofstream& file) const {
     file << name_ << "\n";
     file << score_ << "\n";
     for (const auto& tile : rack_) {
-        file << (tile.isBlank() ? '?' : tile.getLetter()) << " ";
+        if (tile.isBlank() && tile.getLetter() != '?') {  // Nếu set
+            file << "?" << tile.getLetter() << " ";  // e.g., "?A "
+        } else {
+            file << tile.getLetter() << " ";
+        }
     }
-    file << "\n";
 }
 
 void Player::deserialize(std::ifstream& file) {
     rack_.clear();
     std::getline(file, name_);
     file >> score_;
-    file.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Safely ignore rest of line
+    file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
     std::string rackData;
     std::getline(file, rackData);
     std::stringstream ss(rackData);
-    char letter;
-    while(ss >> letter) {
-        if(letter == '?') {
-            addToRack(Tile(' ', 0, true));
+    std::string tileStr;
+    while(ss >> tileStr) {
+        if (tileStr.empty()) continue;
+        if (tileStr[0] == '?') {
+            Tile blankTile('?', true);
+            if (tileStr.length() > 1) {
+                blankTile.setBlankLetter(tileStr[1]);
+            }
+            addToRack(blankTile);
         } else {
-            addToRack(Tile(letter, Tile::getDefaultScore(letter)));
+            addToRack(Tile(tileStr[0], false));
         }
     }
 }

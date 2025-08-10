@@ -3,7 +3,6 @@
 #include <vector>
 #include <string>
 
-// Forward declarations để tránh include không cần thiết
 class Board;
 class Tile;
 class Move;
@@ -24,10 +23,6 @@ private:
     std::vector<std::pair<int, int>> findValidPositions(const Board& board);
     // Tạo ra các từ có thể có từ các chữ cái trên tay
     std::vector<std::string> generatePotentialWords(const std::vector<Tile>& rack, int maxLength);
-
-    // CÁC HÀM CŨ ĐÃ BỊ XÓA:
-    // - tryPlaceWord
-    // - calculateScore
 };
 
 } // namespace Strategies

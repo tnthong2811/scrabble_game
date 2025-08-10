@@ -1,38 +1,34 @@
-#ifndef TILE_H
-#define TILE_H
-
+#pragma once
 #include <string>
 #include <map>
 
 class Tile {
 public:
     // === Constructors ===
-    Tile(char letter = ' ', bool isBlank = false);           // Constructor mặc định
-    Tile(char letter, int value, bool isBlank = false);      // Constructor với giá trị
+    Tile(); // Constructor mặc định cho một ô trống (ví dụ: trên bàn cờ)
+    Tile(char letter, bool isBlank); // Constructor chính để tạo ô chữ
+    Tile(char letter, int value, bool isBlank); // Constructor phụ (tùy chọn)
 
     // === Core Getters ===
-    char getLetter() const;         // Trả về ký tự hiển thị
-    int getValue() const;           // Trả về điểm số
-    bool isBlank() const;           // Kiểm tra blank tile
-    bool isVowel() const;           // Kiểm tra xem tile có phải nguyên âm không
+    char getLetter() const;
+    int getValue() const;
+    bool isBlank() const;
+    bool isVowel() const;
 
     // === Setters ===
-    void setBlankLetter(char letter); // Đặt ký tự cho blank tile
-    void setValue(int value);         // Thay đổi điểm số (cho power-up)
+    void setBlankLetter(char letter);
+    void setValue(int value);
 
     // === Utility ===
-    std::string toString() const;    // Biểu diễn dạng chuỗi "A(1)"
+    std::string toString() const;
     bool operator==(const Tile& other) const;
-    // Static method to access DEFAULT_SCORES
     static int getDefaultScore(char letter);
 
 private:
-    char letter_;      // A-Z, ' ' nếu blank
-    int value_;        // Điểm số (0-10)
-    bool isBlank_;     // Có phải blank tile
-    char blankLetter_; // Ký tự đại diện nếu blank
+    char letter_;
+    int value_;
+    bool isBlank_;
+    char blankLetter_;
 
-    static const std::map<char, int> DEFAULT_SCORES; // Bảng điểm Scrabble
+    static const std::map<char, int> DEFAULT_SCORES;
 };
-
-#endif
