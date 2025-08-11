@@ -118,3 +118,4 @@ void Player::deserialize(std::ifstream& file) {
         }
     }
 }
+

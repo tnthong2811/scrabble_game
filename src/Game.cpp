@@ -4,7 +4,7 @@
 #include <fstream>
 #include <sstream>
 
-Game::Game() : currentPlayerId_(0), state_(State::NOT_STARTED), consecutivePasses_(0) {}
+Game::Game() : currentPlayerId_(1), state_(State::NOT_STARTED), consecutivePasses_(0) {}
 
 void Game::startNewGame(int aiCount) {
     board_.reset();
