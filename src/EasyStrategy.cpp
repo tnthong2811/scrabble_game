@@ -4,6 +4,8 @@
 namespace AI {
 namespace Strategies {
 
+EasyStrategy::EasyStrategy(const TrieDictionary& dictionary) : dictionary_(dictionary) {}  // New
+
 std::vector<Move> EasyStrategy::generatePlays(const Board& board, const std::vector<Tile>& rack) {
     std::vector<Move> plays;
     
@@ -15,7 +17,7 @@ std::vector<Move> EasyStrategy::generatePlays(const Board& board, const std::vec
         if (plays.size() >= 5) break; 
 
         Move play = generateRandomValidPlay(board, rack, gen);
-        if (play.isValid()) {
+        if (play.isValid() && dictionary_.contains(play.getWord())) {  // Check dict
             plays.push_back(play);
         }
     }
@@ -24,8 +26,6 @@ std::vector<Move> EasyStrategy::generatePlays(const Board& board, const std::vec
 }
 
 Move EasyStrategy::generateRandomValidPlay(const Board& board, const std::vector<Tile>& rack, std::mt19937& gen) {
-    std::uniform_int_distribution<> rowDist(0, Board::SIZE - 1);
-    std::uniform_int_distribution<> colDist(0, Board::SIZE - 1);
     std::uniform_int_distribution<> dirDist(0, 1);
 
     std::string word;
@@ -45,11 +45,30 @@ Move EasyStrategy::generateRandomValidPlay(const Board& board, const std::vector
     }
     if (word.empty()) return Move("", 0, 0, Move::Direction::HORIZONTAL); 
 
-    int row = rowDist(gen);
-    int col = colDist(gen);
+    // Use anchor for position
+    auto anchors = findAnchorPoints(board);  // Add function similar to Hard
+    if (anchors.empty()) return Move("", 0, 0, Move::Direction::HORIZONTAL); 
+    auto anchor = anchors[gen() % anchors.size()];
+    int row = anchor.first;
+    int col = anchor.second;
+
     Move::Direction dir = (dirDist(gen) == 0) ? Move::Direction::HORIZONTAL : Move::Direction::VERTICAL;
 
     return Move(word, row, col, dir);
+}
+
+// Add this function
+std::vector<std::pair<int, int>> EasyStrategy::findAnchorPoints(const Board& board) {
+    std::vector<std::pair<int, int>> anchors;
+    for (int i = 0; i < Board::SIZE; ++i) {
+        for (int j = 0; j < Board::SIZE; ++j) {
+            if (board.isAnchor(i, j)) {
+                anchors.emplace_back(i, j);
+            }
+        }
+    }
+    if (anchors.empty()) anchors.emplace_back(7, 7);  // Center if empty
+    return anchors;
 }
 
 } // namespace Strategies

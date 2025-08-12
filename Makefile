@@ -33,7 +33,7 @@ LDFLAGS = -L"$(LIB_DIR)/SDL2/lib" \
           -L"$(LIB_DIR)/SDL2_image/lib" \
           -L"$(LIB_DIR)/SDL2_ttf/lib" \
           -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf \
-          -mwindows
+          -mconsole
 
 # --- 6. Danh sách các file DLL cần thiết ---
 DLLS = $(LIB_DIR)/SDL2/bin/SDL2.dll \

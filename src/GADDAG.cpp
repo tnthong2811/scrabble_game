@@ -157,12 +157,13 @@ std::vector<std::string> GADDAG::findWordsWithPattern(const std::string& pattern
                                                      const std::vector<bool>& isBlank) const {
     std::vector<std::string> results;
     int blankCount = std::count(isBlank.begin(), isBlank.end(), true);
-    std::vector<bool> used(rackLetters.size(), false);
+    std::unordered_map<char, int> letterCount;  // New: Count for duplicate
+    for (char c : rackLetters) letterCount[c]++;
 
-    auto search = [this, &results, &used, &blankCount, &rackLetters, &isBlank, &pattern](auto&& self, 
+    auto search = [this, &results, &letterCount, &blankCount, &rackLetters, &isBlank, &pattern](auto&& self, 
                                                                                        std::shared_ptr<Node> node, 
                                                                                        std::string current, 
-                                                                                       std::string::size_type patternPos, // Thay int bằng std::string::size_type
+                                                                                       std::string::size_type patternPos, 
                                                                                        bool reversed) -> void {
         if (patternPos >= pattern.length()) {
             if (node->isTerminal) {
@@ -184,16 +185,14 @@ std::vector<std::string> GADDAG::findWordsWithPattern(const std::string& pattern
                 char c = child.first;
                 if (c == '>') continue;
 
-                bool found = false;
-                for (size_t i = 0; i < rackLetters.size() && !found; ++i) {
-                    if (!used[i] && (rackLetters[i] == c || (isBlank[i] && blankCount > 0))) {
-                        used[i] = true;
-                        if (isBlank[i]) blankCount--;
-                        self(self, child.second, current + c, patternPos + 1, reversed);
-                        used[i] = false;
-                        if (isBlank[i]) blankCount++;
-                        found = true;
-                    }
+                if (letterCount[c] > 0) {  
+                    letterCount[c]--;
+                    self(self, child.second, current + c, patternPos + 1, reversed);
+                    letterCount[c]++;
+                } else if (blankCount > 0) {
+                    blankCount--;
+                    self(self, child.second, current + c, patternPos + 1, reversed);
+                    blankCount++;
                 }
             }
         } else {
@@ -210,14 +209,21 @@ std::vector<std::string> GADDAG::findWordsWithPattern(const std::string& pattern
 
 int GADDAG::calculateScore(const std::string& word, const Board& board, const BoardPosition& pos, bool horizontal) const {
     int score = 0;
+    int multiplier = 1;
     for (size_t i = 0; i < word.length(); ++i) {
         int r = pos.row + (horizontal ? 0 : i);
         int c = pos.col + (horizontal ? i : 0);
         if (board.isValidPosition(r, c)) {
-            score += Tile(word[i], false).getValue();
+            int letterScore = Tile(word[i], false).getValue();
+            auto cellType = board.getCell(r, c).type;
+            if (cellType == CellType::DOUBLE_LETTER) letterScore *= 2;
+            else if (cellType == CellType::TRIPLE_LETTER) letterScore *= 3;
+            else if (cellType == CellType::DOUBLE_WORD) multiplier *= 2;
+            else if (cellType == CellType::TRIPLE_WORD) multiplier *= 3;
+            score += letterScore;
         }
     }
-    return score;
+    return score * multiplier;
 }
 
 } // namespace Utils

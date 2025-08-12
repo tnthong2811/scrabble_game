@@ -96,6 +96,18 @@ void GameUI::handleEvents() {
                 mouseY >= buttonsRect_.y && mouseY < buttonsRect_.y + buttonsRect_.h) {
                 
                 if (!currentMoveTiles_.empty()) {
+                    bool allSameRow = true, allSameCol = true;
+                    int firstRow = currentMoveTiles_[0].boardRow;
+                    int firstCol = currentMoveTiles_[0].boardCol;
+                    for (const auto& t : currentMoveTiles_) {
+                        if (t.boardRow != firstRow) allSameRow = false;
+                        if (t.boardCol != firstCol) allSameCol = false;
+                    }
+                    if (!allSameRow && !allSameCol) {
+                        std::cout << "Placed tiles not aligned!" << std::endl;
+                        currentMoveTiles_.clear();  // Clear invalid
+                        continue;
+                    }
                     // Sắp xếp các ô chữ đã đặt để xác định hướng đi
                     std::sort(currentMoveTiles_.begin(), currentMoveTiles_.end(), [](const auto& a, const auto& b) {
                         if (a.boardRow != b.boardRow) return a.boardRow < b.boardRow;
@@ -147,6 +159,10 @@ void GameUI::handleEvents() {
                     bool success = game_.playWord(0, wordFromRack, fullWord, finalStartRow, finalStartCol, isHorizontal);
                     if (success) {
                         currentMoveTiles_.clear();
+                    } else {
+                        // Nếu nước đi không hợp lệ, xóa các ô chữ tạm để chúng quay về khay
+                        currentMoveTiles_.clear();
+                        invalidMoveTimestamp_ = SDL_GetTicks();
                     }
                 }
                 continue; // Dừng xử lý sự kiện này sau khi click nút
@@ -216,6 +232,19 @@ void GameUI::render() {
         int mouseX, mouseY;
         SDL_GetMouseState(&mouseX, &mouseY);
         renderTile(draggedTile_, mouseX - dragOffset_.x, mouseY - dragOffset_.y);
+    }
+
+    if (invalidMoveTimestamp_ != 0) {
+        Uint32 currentTime = SDL_GetTicks();
+        // Nếu chưa đủ 2 giây (2000 mili giây)
+        if (currentTime - invalidMoveTimestamp_ < 2000) {
+            // Vẽ chữ "INVALID" màu đỏ giữa bàn cờ
+            SDL_Color red = {255, 0, 0, 255};
+            renderText("INVALID MOVE", boardRect_.x, boardRect_.y, boardRect_.w, boardRect_.h, fontBig_, red);
+        } else {
+            // Nếu đã quá 2 giây, reset bộ đếm giờ
+            invalidMoveTimestamp_ = 0;
+        }
     }
 
     SDL_RenderPresent(renderer_);

@@ -119,3 +119,57 @@ void Player::deserialize(std::ifstream& file) {
     }
 }
 
+std::string Player::findTwoLetterWord(const TrieDictionary& dictionary) const {
+    if (rack_.size() < 2) return "";
+
+    for (size_t i = 0; i < rack_.size(); ++i) {
+        if (rack_[i].isBlank()) continue;
+        for (size_t j = 0; j < rack_.size(); ++j) {
+            if (i == j || rack_[j].isBlank()) continue;
+            
+            std::string word = "";
+            word += rack_[i].getLetter();
+            word += rack_[j].getLetter();
+            if (dictionary.contains(word)) return word;  // Check dict
+        }
+    }
+    return "";
+}
+
+std::string Player::findShortValidWord(const TrieDictionary& dictionary) const {
+    std::vector<char> letters;
+    for (const auto& tile : rack_) {
+        if (!tile.isBlank()) {
+            letters.push_back(tile.getLetter());
+        }
+    }
+    if (letters.size() < 2) return "";
+
+    std::sort(letters.begin(), letters.end());
+
+    do {
+        for (int len = 2; len <= std::min(5, static_cast<int>(letters.size())); ++len) {
+            std::string word(letters.begin(), letters.begin() + len);
+            std::cout << "Trying word: " << word << std::endl;  // Log
+            if (dictionary.contains(word)) {
+                return word;  
+            }
+        }
+    } while (std::next_permutation(letters.begin(), letters.end()));
+
+    // Nếu có blank, thử thay blank bằng A-Z cho length 2
+    for (const auto& tile : rack_) {
+        if (tile.isBlank()) {
+            for (char rep = 'A'; rep <= 'Z'; ++rep) {
+                for (char l : letters) {
+                    std::string word = std::string(1, l) + rep;
+                    std::cout << "Trying blank word: " << word << std::endl;  // Log
+                    if (dictionary.contains(word)) return word;
+                }
+            }
+            break;  // Chỉ 1 blank cho simple
+        }
+    }
+
+    return "";  // Không tìm thấy
+}

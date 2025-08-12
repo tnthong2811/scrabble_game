@@ -15,8 +15,7 @@
  * @param dictionary Từ điển để xác thực các từ.
  * @return Một đối tượng MoveResult chứa kết quả phân tích.
  */
-
-int Board::calculateScoreForSingleWord(const Move& move, const std::string& word, int startRow, int startCol, bool isHorizontal) const {
+int Board::calculateScoreForSingleWord(const Move& move, const std::string& word, int startRow, int startCol, bool isHorizontal, const Board& tempBoard) const {  
     int currentWordScore = 0;
     int wordMultiplier = 1;
 
@@ -25,9 +24,9 @@ int Board::calculateScoreForSingleWord(const Move& move, const std::string& word
         int c = startCol + (isHorizontal ? i : 0);
         int letterScore = Tile::getDefaultScore(word[i]);
         
-        // Chỉ áp dụng bonus nếu ô đó chưa có tile (tức là tile mới được đặt)
-        if (!this->hasTile(r, c)) { 
-            switch(this->grid_[r][c].type) {
+        // Áp dụng bonus nếu ô mới (on this real board !hasTile)
+        if (!this->hasTile(r, c)) {  // Use this, not tempBoard (temp has all)
+            switch(this->grid_[r][c].type) {  // this for type
                 case CellType::DOUBLE_LETTER: letterScore *= 2; break;
                 case CellType::TRIPLE_LETTER: letterScore *= 3; break;
                 case CellType::DOUBLE_WORD:
@@ -48,13 +47,15 @@ MoveResult Board::validateAndScoreMove(const Move& move, const Player& player, c
     std::string fullWord = move.getWord();
     bool isHorizontal = move.getDirection() == Move::Direction::HORIZONTAL;
 
+    // Hỗ trợ blank: Nếu fullWord có '?', assume blank tile đại diện cho letter sau, nhưng ở đây fullWord là string, cần handle
     for (size_t i = 0; i < fullWord.length(); ++i) {
         int r = move.getRow() + (isHorizontal ? 0 : i);
         int c = move.getCol() + (isHorizontal ? i : 0);
         if (!isValidPosition(r, c)) return MoveResult::Invalid("Tu dat ngoai ban co.");
         if (!this->hasTile(r, c)) {
             lettersFromRack += fullWord[i];
-            tempBoard.grid_[r][c].tile = Tile(fullWord[i], false);
+            bool isBlank = (fullWord[i] == '?');
+            tempBoard.grid_[r][c].tile = Tile(fullWord[i], isBlank);
         } else if (this->getTileLetter(r, c) != fullWord[i]) {
             return MoveResult::Invalid("Dat chong len chu cai khong khop.");
         }
@@ -83,14 +84,14 @@ MoveResult Board::validateAndScoreMove(const Move& move, const Player& player, c
     std::set<std::string> allNewWords;
     int totalScore = 0;
     std::string mainWord = tempBoard.getWordAt(move.getRow(), move.getCol(), isHorizontal);
-    if(mainWord.length() > 1) allNewWords.insert(mainWord);
+    if (mainWord.length() > 1) allNewWords.insert(mainWord);  // Cho single letter nếu connected
     
     for (size_t i = 0; i < fullWord.length(); ++i) {
         int r = move.getRow() + (isHorizontal ? 0 : i);
         int c = move.getCol() + (isHorizontal ? i : 0);
         if(!this->hasTile(r, c)) {
             std::string sideWord = tempBoard.getWordAt(r, c, !isHorizontal);
-            if(sideWord.length() > 1) allNewWords.insert(sideWord);
+            if(sideWord.length() > 1) allNewWords.insert(sideWord);  // Cho single
         }
     }
 
@@ -105,11 +106,10 @@ MoveResult Board::validateAndScoreMove(const Move& move, const Player& player, c
     for (const auto& word : allNewWords) {
         bool found = false;
         for (int r = 0; r < SIZE && !found; ++r) for (int c = 0; c < SIZE && !found; ++c) {
-            // *** SỬA LỖI: Truyền 'move' vào lời gọi hàm ***
             if (tempBoard.getWordAt(r, c, true) == word) {
-                totalScore += calculateScoreForSingleWord(move, word, r, c, true); found = true;
+                totalScore += calculateScoreForSingleWord(move, word, r, c, true, tempBoard); found = true;
             } else if (tempBoard.getWordAt(r, c, false) == word) {
-                totalScore += calculateScoreForSingleWord(move, word, r, c, false); found = true;
+                totalScore += calculateScoreForSingleWord(move, word, r, c, false, tempBoard); found = true;
             }
         }
     }

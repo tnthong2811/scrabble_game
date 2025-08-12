@@ -17,16 +17,15 @@ float AdvancedHeuristic::evaluate(const Play& play,
                                 const Board& board, 
                                 const std::vector<Tile>& remainingRack) {
     const Move& move = play.getMove();
+    Board tempBoard = board;  // Copy
+    tempBoard.executeMove(move);  // Simulate
     float score = static_cast<float>(move.getScore());
 
-    if (move.getTilesUsed().size() == Player::MAX_RACK_SIZE) {
-        score += 50.0f;
-    }
-
+    // Rest dùng tempBoard cho cell checks
     for (const auto& pos : move.getCoveredPositions()) {
         int row = pos.first;
         int col = pos.second;
-        const auto& cell = board.getCell(row, col);
+        const auto& cell = tempBoard.getCell(row, col);  // tempBoard
         if (!cell.isPremiumUsed) { 
             switch (cell.type) { 
                 case CellType::DOUBLE_LETTER: score += 0.5f; break;
@@ -37,7 +36,7 @@ float AdvancedHeuristic::evaluate(const Play& play,
             }
         }
     }
-
+    
     int vowelCount = 0;
     for (const Tile& tile : remainingRack) {
         if (tile.isVowel()) vowelCount++;
@@ -62,7 +61,7 @@ float AdvancedHeuristic::evaluate(const Play& play,
         }
     }
 
-    return score * aggressiveness_;
+    return score * aggressiveness_;    
 }
 
 } // namespace Heuristics

@@ -1,27 +1,25 @@
 #pragma once
 #include "BaseStrategy.h"
+#include "core/Board.h"
+#include "core/Move.h"
+#include "core/Tile.h"
+#include "core/dictionary/trie_dictionary.hpp"
 #include <vector>
 #include <string>
-
-class Board;
-class Tile;
-class Move;
+#include <utility> 
 
 namespace AI {
 namespace Strategies {
 
 class MediumStrategy : public BaseStrategy {
 public:
-    /**
-     * @brief Tạo ra một danh sách các nước đi (Move) tiềm năng.
-     * Hàm này không đảm bảo các nước đi là hợp lệ 100% hay đã được tính điểm.
-     */
+    MediumStrategy(const TrieDictionary& dictionary);
     std::vector<Move> generatePlays(const Board& board, const std::vector<Tile>& rack) override;
 
 private:
-    // Tìm các vị trí có thể bắt đầu một nước đi (điểm neo)
+    const TrieDictionary& dictionary_;
+
     std::vector<std::pair<int, int>> findValidPositions(const Board& board);
-    // Tạo ra các từ có thể có từ các chữ cái trên tay
     std::vector<std::string> generatePotentialWords(const std::vector<Tile>& rack, int maxLength);
 };
 

@@ -37,6 +37,7 @@ private:
     int draggedRackIndex_ = -1;
     Tile draggedTile_;
     SDL_Point dragOffset_;
+    Uint32 invalidMoveTimestamp_ = 0;
     std::vector<TempPlacedTile> currentMoveTiles_;
 
     bool init();

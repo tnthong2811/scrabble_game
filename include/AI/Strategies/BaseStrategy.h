@@ -1,7 +1,7 @@
 #pragma once
-#include "../../Core/Board.h"
-#include "../../Core/Tile.h"
-#include "../../Core/Move.h" 
+#include "core/Board.h"
+#include "core/Tile.h"
+#include "core/Move.h" 
 
 namespace AI {
 namespace Strategies {

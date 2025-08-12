@@ -17,12 +17,12 @@ ScrabbleAI::~ScrabbleAI() = default;
 void ScrabbleAI::initializeStrategy() {
     switch (difficulty_) {
         case Difficulty::EASY:
-            strategy_ = std::make_unique<Strategies::EasyStrategy>();
+            strategy_ = std::make_unique<Strategies::EasyStrategy>(dictionary_);
             heuristic_ = std::make_unique<Heuristics::BasicHeuristic>();
             break;
             
         case Difficulty::MEDIUM:
-            strategy_ = std::make_unique<Strategies::MediumStrategy>();
+            strategy_ = std::make_unique<Strategies::MediumStrategy>(dictionary_);
             heuristic_ = std::make_unique<Heuristics::AdvancedHeuristic>();
             break;
             
@@ -71,6 +71,7 @@ std::vector<Tile> ScrabbleAI::calculateRemainingRack(const std::vector<Tile>& ra
     for (const Tile& usedTile : tilesUsed) {
         auto it = std::find_if(remaining.begin(), remaining.end(),
                                [&usedTile](const Tile& t) {
+                                   if (usedTile.isBlank()) return t.isBlank();  // Flexible for blank
                                    return t.getLetter() == usedTile.getLetter() && t.getValue() == usedTile.getValue() && t.isBlank() == usedTile.isBlank();
                                });
         if (it != remaining.end()) {

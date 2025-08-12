@@ -1,6 +1,7 @@
 #pragma once
 #include "Tile.h"
 #include "Move.h"
+#include "Player.h"
 #include "dictionary/trie_dictionary.hpp"
 #include <vector>
 #include <string>
@@ -24,9 +25,6 @@ struct MoveResult {
         return res;
     }
 };
-
-// Khai báo trước lớp Player để tránh lỗi biên dịch vòng tròn
-class Player;
 
 class Board {
 public:
@@ -65,8 +63,7 @@ private:
     // === Các hàm Private Helpers ===
     void initializePremiumSquares();
     bool isAdjacentToTile(int row, int col) const;
-    // *** THAY ĐỔI DUY NHẤT: Cập nhật chữ ký hàm này để khớp với file .cpp ***
-    int calculateScoreForSingleWord(const Move& move, const std::string& word, int startRow, int startCol, bool isHorizontal) const;
+    int calculateScoreForSingleWord(const Move& move, const std::string& word, int startRow, int startCol, bool isHorizontal, const Board& tempBoard) const;
     bool placeTile(int row, int col, Tile tile);
     void markPremiumUsed(int row, int col);
 };
