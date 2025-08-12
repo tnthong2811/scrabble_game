@@ -3,6 +3,7 @@
 #include "TileBag.h"
 #include "dictionary/trie_dictionary.hpp"
 #include <vector>
+#include <functional>
 #include <string>
 #include <fstream>
 
@@ -18,7 +19,7 @@ public:
     void removeTilesFromRack(const std::string& word);
     bool canFormWord(const std::string& word) const;
     std::string findTwoLetterWord(const TrieDictionary& dictionary) const;
-    std::string findShortValidWord(const TrieDictionary& dictionary) const;
+    std::string findValidWord(const TrieDictionary& dictionary) const;
     // === Game Actions ===
     bool swapTiles(TileBag& bag, const std::vector<char>& letters);
 

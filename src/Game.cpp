@@ -49,7 +49,7 @@ void Game::processAITurn() {
     std::cout << "\n--- Den luot cua " << aiPlayer->getName() << " ---" << std::endl;
 
     if (board_.isEmpty()) {
-        std::string firstWord = aiPlayer->findShortValidWord(dictionary_);
+        std::string firstWord = aiPlayer->findValidWord(dictionary_);
         if (!firstWord.empty()) {
             std::cout << "AI se thu di tu: " << firstWord << std::endl;
             // Position center, horizontal, assume length fit

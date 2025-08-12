@@ -136,40 +136,54 @@ std::string Player::findTwoLetterWord(const TrieDictionary& dictionary) const {
     return "";
 }
 
-std::string Player::findShortValidWord(const TrieDictionary& dictionary) const {
+std::string Player::findValidWord(const TrieDictionary& dictionary) const {
     std::vector<char> letters;
-    for (const auto& tile : rack_) {
-        if (!tile.isBlank()) {
+    std::vector<bool> isBlank(rack_.size(), false);
+    for (size_t i = 0; i < rack_.size(); ++i) {
+        const auto& tile = rack_[i];
+        if (tile.isBlank()) {
+            isBlank[i] = true;
+        } else {
             letters.push_back(tile.getLetter());
         }
     }
-    if (letters.size() < 2) return "";
+    int blankCount = std::count(isBlank.begin(), isBlank.end(), true);
+    if (letters.size() + blankCount < 2) return "";
 
     std::sort(letters.begin(), letters.end());
 
-    do {
-        for (int len = 2; len <= std::min(5, static_cast<int>(letters.size())); ++len) {
-            std::string word(letters.begin(), letters.begin() + len);
+    // Function to generate and check words with blanks
+    std::function<std::string(std::vector<char>& curr, int blanksLeft)> generate = [&](std::vector<char>& curr, int blanksLeft) {
+        if (curr.size() >= 2) {
+            std::string word(curr.begin(), curr.end());
             std::cout << "Trying word: " << word << std::endl;  // Log
             if (dictionary.contains(word)) {
-                return word;  
+                return word;  // Found, return
             }
         }
-    } while (std::next_permutation(letters.begin(), letters.end()));
-
-    // Nếu có blank, thử thay blank bằng A-Z cho length 2
-    for (const auto& tile : rack_) {
-        if (tile.isBlank()) {
+        if (blanksLeft > 0) {
             for (char rep = 'A'; rep <= 'Z'; ++rep) {
-                for (char l : letters) {
-                    std::string word = std::string(1, l) + rep;
-                    std::cout << "Trying blank word: " << word << std::endl;  // Log
-                    if (dictionary.contains(word)) return word;
-                }
+                curr.push_back(rep);
+                auto res = generate(curr, blanksLeft - 1);
+                if (!res.empty()) return res;
+                curr.pop_back();
             }
-            break;  // Chỉ 1 blank cho simple
+        } else if (!letters.empty()) {
+            // Permute non-blank
+            do {
+                std::vector<char> temp = curr;
+                temp.insert(temp.end(), letters.begin(), letters.end());
+                std::string word(temp.begin(), temp.end());
+                std::cout << "Trying word: " << word << std::endl;  // Log
+                if (dictionary.contains(word)) {
+                    return word;
+                }
+            } while (std::next_permutation(letters.begin(), letters.end()));
         }
-    }
+        return std::string("");
+    };
 
-    return "";  // Không tìm thấy
+    std::vector<char> emptyCurr;
+    auto result = generate(emptyCurr, blankCount);
+    return result;
 }
