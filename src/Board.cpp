@@ -22,7 +22,7 @@ int Board::calculateScoreForSingleWord(const Move& move, const std::string& word
     for (size_t i = 0; i < word.length(); ++i) {
         int r = startRow + (isHorizontal ? 0 : i);
         int c = startCol + (isHorizontal ? i : 0);
-        int letterScore = Tile::getDefaultScore(word[i]);
+        int letterScore = Tile::getDefaultScore(tempBoard.getTileLetter(r, c));
         
         // Áp dụng bonus nếu ô mới (on this real board !hasTile)
         if (!this->hasTile(r, c)) {  // Use this, not tempBoard (temp has all)
@@ -332,4 +332,65 @@ void Board::deserialize(std::ifstream& file) {
             }
         }
     }
+}
+
+std::set<char> Board::getCrossSet(int row, int col, bool horizontal, const TrieDictionary& dictionary) const {
+    std::set<char> allowed;
+    if (!isValidPosition(row, col) || hasTile(row, col)) {
+        return allowed; // Chỉ cho ô trống hợp lệ
+    }
+
+    // Xác định hướng perpendicular (vuông góc với hướng move)
+    // Nếu horizontal = true (move ngang), perp là vertical (dọc)
+    bool perpVertical = !horizontal; // perpVertical = true nếu perp là dọc
+
+    std::string prefix = "";
+    std::string suffix = "";
+
+    // Build prefix: Lùi về phía trước theo perp dir để lấy letters existing
+    int pr = row, pc = col;
+    if (perpVertical) { // Perp dọc: lùi lên (row -)
+        while (pr > 0 && hasTile(pr - 1, pc)) {
+            pr--;
+            prefix = getTileLetter(pr, pc) + prefix;
+        }
+    } else { // Perp ngang: lùi trái (col -)
+        while (pc > 0 && hasTile(pr, pc - 1)) {
+            pc--;
+            prefix = getTileLetter(pr, pc) + prefix;
+        }
+    }
+
+    // Build suffix: Tiến về phía sau theo perp dir
+    pr = row, pc = col;
+    if (perpVertical) { // Perp dọc: tiến xuống (row +)
+        while (pr < SIZE - 1 && hasTile(pr + 1, pc)) {
+            pr++;
+            suffix += getTileLetter(pr, pc);
+        }
+    } else { // Perp ngang: tiến phải (col +)
+        while (pc < SIZE - 1 && hasTile(pr, pc + 1)) {
+            pc++;
+            suffix += getTileLetter(pr, pc);
+        }
+    }
+
+    // Nếu không có prefix hoặc suffix (không adjacent perp tiles), cho phép tất cả letters
+    // (Vì single letter không tạo từ count, nhưng allowed to place; dict thường không có single, nhưng vẫn allow)
+    if (prefix.empty() && suffix.empty()) {
+        for (char c = 'A'; c <= 'Z'; ++c) {
+            allowed.insert(c);
+        }
+        return allowed;
+    }
+
+    // Có adjacent perp: Kiểm tra từng letter 'A'-'Z' xem perpWord có trong dict không
+    for (char c = 'A'; c <= 'Z'; ++c) {
+        std::string perpWord = prefix + c + suffix;
+        if (perpWord.length() >= 2 && dictionary.contains(perpWord)) { // Chỉ check nếu length >=2, vì single thường không trong dict
+            allowed.insert(c);
+        }
+    }
+
+    return allowed;
 }

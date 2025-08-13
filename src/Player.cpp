@@ -72,6 +72,11 @@ bool Player::swapTiles(TileBag& bag, const std::vector<char>& letters) {
         tilesToReturn.emplace_back(c, false);
     }
 
+    for(char c : letters) {
+        bool isBlank = (c == '?');
+        tilesToReturn.emplace_back(isBlank ? '?' : c, isBlank);
+    }
+
     removeTilesFromRack(wordFromLetters);
     bag.returnTiles(tilesToReturn);
 

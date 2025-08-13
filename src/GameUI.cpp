@@ -3,7 +3,6 @@
 #include <string>
 #include <algorithm>
 
-// --- Bảng màu và các hằng số giữ nguyên ---
 const SDL_Color COLOR_BACKGROUND = { 34, 40, 49, 255 };    // Xám xanh đậm
 const SDL_Color COLOR_BOARD_BG = { 20, 25, 30, 255 };      // Nền bàn cờ
 const SDL_Color COLOR_NORMAL_CELL = { 205, 193, 180, 255 }; // Be
@@ -21,7 +20,6 @@ const int BOARD_SIZE_PX = 600;
 const int CELL_SIZE = BOARD_SIZE_PX / Board::SIZE; // 40px
 const int TILE_SIZE = 38;
 
-// Constructor và Destructor không thay đổi
 GameUI::GameUI(Game& gameLogic) : game_(gameLogic) { if (!init()) { /* Lỗi */ } }
 GameUI::~GameUI() { close(); }
 
@@ -45,6 +43,13 @@ void GameUI::defineLayout() {
     rackRect_ = { BOARD_X, boardRect_.y + boardRect_.h + 20, 450, 60 };
     sidebarRect_ = { boardRect_.x + boardRect_.w + 30, BOARD_Y, 240, 680 };
     buttonsRect_ = { rackRect_.x + rackRect_.w + 20, rackRect_.y, 130, 45 };
+    playButtonRect_ = { SCREEN_WIDTH / 2 - 75, SCREEN_HEIGHT / 2 + 50, 150, 60 };
+    dynamicSubmitButtonRect_ = buttonsRect_;
+    dynamicPlayButtonRect_ = playButtonRect_;
+    skipButtonRect_ = { buttonsRect_.x + buttonsRect_.w + 10, buttonsRect_.y, 80, 45 };
+    dynamicSubmitButtonRect_ = buttonsRect_;
+    dynamicPlayButtonRect_ = playButtonRect_;
+    dynamicSkipButtonRect_ = skipButtonRect_;
 }
 
 void GameUI::close() {
@@ -59,19 +64,66 @@ void GameUI::close() {
 
 void GameUI::run() {
     running_ = true;
-    game_.startNewGame(1);
     while (running_) {
         handleEvents();
-        if (game_.getState() == Game::State::PLAYING && game_.getCurrentPlayerId() != 0) {
-            SDL_Delay(500);
-            game_.update();
-        }
-        render();
+        update();
+        updateGame();  
+        render();      
         SDL_Delay(16);
     }
 }
 
-void GameUI::handleEvents() {
+void GameUI::update() {
+    int mouseX, mouseY;
+    SDL_GetMouseState(&mouseX, &mouseY);
+
+    const float scale = 1.1f;
+    
+    if (currentState_ == UIState::MAIN_MENU) {
+        if (mouseX >= playButtonRect_.x && mouseX < playButtonRect_.x + playButtonRect_.w &&
+            mouseY >= playButtonRect_.y && mouseY < playButtonRect_.y + playButtonRect_.h) {
+            dynamicPlayButtonRect_.w = playButtonRect_.w * scale;
+            dynamicPlayButtonRect_.h = playButtonRect_.h * scale;
+            dynamicPlayButtonRect_.x = playButtonRect_.x - (dynamicPlayButtonRect_.w - playButtonRect_.w) / 2;
+            dynamicPlayButtonRect_.y = playButtonRect_.y - (dynamicPlayButtonRect_.h - playButtonRect_.h) / 2;
+        } else {
+            dynamicPlayButtonRect_ = playButtonRect_;
+        }
+    }
+
+    if (currentState_ == UIState::PLAYING) {
+        if (mouseX >= buttonsRect_.x && mouseX < buttonsRect_.x + buttonsRect_.w &&
+            mouseY >= buttonsRect_.y && mouseY < buttonsRect_.y + buttonsRect_.h) {
+            dynamicSubmitButtonRect_.w = buttonsRect_.w * scale;
+            dynamicSubmitButtonRect_.h = buttonsRect_.h * scale;
+            dynamicSubmitButtonRect_.x = buttonsRect_.x - (dynamicSubmitButtonRect_.w - buttonsRect_.w) / 2;
+            dynamicSubmitButtonRect_.y = buttonsRect_.y - (dynamicSubmitButtonRect_.h - buttonsRect_.h) / 2;
+        } else {
+            dynamicSubmitButtonRect_ = buttonsRect_;
+        }
+
+        if (mouseX >= skipButtonRect_.x && mouseX < skipButtonRect_.x + skipButtonRect_.w &&
+            mouseY >= skipButtonRect_.y && mouseY < skipButtonRect_.y + skipButtonRect_.h) {
+            dynamicSkipButtonRect_.w = skipButtonRect_.w * scale;
+            dynamicSkipButtonRect_.h = skipButtonRect_.h * scale;
+            dynamicSkipButtonRect_.x = skipButtonRect_.x - (dynamicSkipButtonRect_.w - skipButtonRect_.w) / 2;
+            dynamicSkipButtonRect_.y = skipButtonRect_.y - (dynamicSkipButtonRect_.h - skipButtonRect_.h) / 2;
+        } else {
+            dynamicSkipButtonRect_ = skipButtonRect_;
+        }
+    }
+}
+
+void GameUI::updateGame() {
+    if (currentState_ == UIState::PLAYING) {
+        if (game_.getState() == Game::State::PLAYING && game_.getCurrentPlayerId() != 0) {
+            SDL_Delay(500);
+            game_.update();
+        }
+    }
+}
+
+void GameUI::handleGameEvents() {
     SDL_Event e;
     while (SDL_PollEvent(&e) != 0) {
         // Luôn kiểm tra sự kiện thoát game
@@ -88,10 +140,14 @@ void GameUI::handleEvents() {
         SDL_GetMouseState(&mouseX, &mouseY);
         Player* player = game_.getPlayer(0);
         if (!player) continue;
-
-        // Xử lý sự kiện nhấn chuột xuống
         if (e.type == SDL_MOUSEBUTTONDOWN) {
-            // 1. Kiểm tra click vào nút SUBMIT
+            if (mouseX >= skipButtonRect_.x && mouseX < skipButtonRect_.x + skipButtonRect_.w &&
+                mouseY >= skipButtonRect_.y && mouseY < skipButtonRect_.y + skipButtonRect_.h) {
+                currentMoveTiles_.clear();
+                game_.passTurn(0); 
+                continue;
+            }
+
             if (mouseX >= buttonsRect_.x && mouseX < buttonsRect_.x + buttonsRect_.w && 
                 mouseY >= buttonsRect_.y && mouseY < buttonsRect_.y + buttonsRect_.h) {
                 
@@ -126,7 +182,6 @@ void GameUI::handleEvents() {
                          }
                     }
 
-                    // Tạo chuỗi chữ hoàn chỉnh (fullWord) để xác thực
                     std::string fullWord = "";
                     int r = startRow, c = startCol;
                     if (isHorizontal) {
@@ -217,8 +272,7 @@ void GameUI::handleEvents() {
     }
 }
 
-// *** HÀM render() ĐÃ ĐƯỢC CẬP NHẬT ĐỂ VẼ TILE ĐANG KÉO ***
-void GameUI::render() {
+void GameUI::renderGame() {
     SDL_SetRenderDrawColor(renderer_, COLOR_BACKGROUND.r, COLOR_BACKGROUND.g, COLOR_BACKGROUND.b, 255);
     SDL_RenderClear(renderer_);
 
@@ -250,7 +304,54 @@ void GameUI::render() {
     SDL_RenderPresent(renderer_);
 }
 
-// *** HÀM renderBoard() ĐÃ ĐƯỢC CẬP NHẬT ĐỂ VẼ CÁC TILE ĐẶT TẠM ***
+void GameUI::handleMenuEvents() {
+    SDL_Event e;
+    while (SDL_PollEvent(&e) != 0) {
+        if (e.type == SDL_QUIT) {
+            running_ = false;
+        }
+        if (e.type == SDL_MOUSEBUTTONDOWN) {
+            int mouseX, mouseY;
+            SDL_GetMouseState(&mouseX, &mouseY);
+            if (mouseX >= playButtonRect_.x && mouseX < playButtonRect_.x + playButtonRect_.w &&
+                mouseY >= playButtonRect_.y && mouseY < playButtonRect_.y + playButtonRect_.h) {
+                
+                // *** BẮT ĐẦU GAME KHI CLICK VÀO NÚT PLAY ***
+                game_.startNewGame(1);
+                currentState_ = UIState::PLAYING;
+            }
+        }
+    }
+}
+
+void GameUI::renderMenu() {
+    renderText("SCRABBLE", 0, SCREEN_HEIGHT / 2 - 150, SCREEN_WIDTH, 100, fontBig_, COLOR_TEXT_LIGHT);
+    SDL_SetRenderDrawColor(renderer_, COLOR_BUTTON.r, COLOR_BUTTON.g, COLOR_BUTTON.b, 255);
+    SDL_RenderFillRect(renderer_, &dynamicPlayButtonRect_); 
+    renderText("PLAY", dynamicPlayButtonRect_.x, dynamicPlayButtonRect_.y, dynamicPlayButtonRect_.w, dynamicPlayButtonRect_.h, fontNormal_, COLOR_TEXT_LIGHT);
+}
+
+void GameUI::handleEvents() {
+    if (currentState_ == UIState::MAIN_MENU) {
+        handleMenuEvents();
+    } else { // PLAYING hoặc GAME_OVER
+        handleGameEvents();
+    }
+}
+
+void GameUI::render() {
+    SDL_SetRenderDrawColor(renderer_, COLOR_BACKGROUND.r, COLOR_BACKGROUND.g, COLOR_BACKGROUND.b, 255);
+    SDL_RenderClear(renderer_);
+
+    if (currentState_ == UIState::MAIN_MENU) {
+        renderMenu();
+    } else { // PLAYING hoặc GAME_OVER
+        renderGame();
+    }
+
+    SDL_RenderPresent(renderer_);
+}
+
 void GameUI::renderBoard() {
     // 1. Vẽ nền cho bàn cờ
     SDL_SetRenderDrawColor(renderer_, COLOR_BOARD_BG.r, COLOR_BOARD_BG.g, COLOR_BOARD_BG.b, 255);
@@ -397,8 +498,11 @@ void GameUI::renderSidebar() {
 
 void GameUI::renderButtons() {
     SDL_SetRenderDrawColor(renderer_, COLOR_BUTTON.r, COLOR_BUTTON.g, COLOR_BUTTON.b, 255);
-    SDL_RenderFillRect(renderer_, &buttonsRect_);
-    renderText("SUBMIT", buttonsRect_.x, buttonsRect_.y, buttonsRect_.w, buttonsRect_.h, fontNormal_, COLOR_TEXT_LIGHT);
+    SDL_RenderFillRect(renderer_, &dynamicSubmitButtonRect_); 
+    renderText("SUBMIT", dynamicSubmitButtonRect_.x, dynamicSubmitButtonRect_.y, dynamicSubmitButtonRect_.w, dynamicSubmitButtonRect_.h, fontNormal_, COLOR_TEXT_LIGHT);
+    SDL_SetRenderDrawColor(renderer_, COLOR_BUTTON.r, COLOR_BUTTON.g, COLOR_BUTTON.b, 255);
+    SDL_RenderFillRect(renderer_, &dynamicSkipButtonRect_);
+    renderText("SKIP", dynamicSkipButtonRect_.x, dynamicSkipButtonRect_.y, dynamicSkipButtonRect_.w, dynamicSkipButtonRect_.h, fontNormal_, COLOR_TEXT_LIGHT);
 }
 
 void GameUI::renderText(const std::string& text, int x, int y, TTF_Font* font, SDL_Color color) {

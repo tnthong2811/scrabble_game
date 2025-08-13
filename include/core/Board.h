@@ -4,6 +4,7 @@
 #include "Player.h"
 #include "dictionary/trie_dictionary.hpp"
 #include <vector>
+#include <set>
 #include <string>
 #include <fstream>
 
@@ -50,6 +51,7 @@ public:
     bool isEmpty() const;
     bool isAnchor(int row, int col) const;
     std::string getWordAt(int row, int col, bool horizontal) const;
+    std::set<char> getCrossSet(int row, int col, bool horizontal, const TrieDictionary& dictionary) const;
     bool isValidPosition(int row, int col) const;
     char getTileLetter(int row, int col) const;
 

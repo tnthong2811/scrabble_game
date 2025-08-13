@@ -19,8 +19,7 @@ class ScrabbleAI {
 public:
     ScrabbleAI(Difficulty difficulty, const TrieDictionary& dictionary);
     ~ScrabbleAI();
-    
-    Play generatePlay(const Board& board, const std::vector<Tile>& rack);
+    std::vector<Play> generateTopPlays(const Board& board, const std::vector<Tile>& rack, int topN);
     void setDifficulty(Difficulty newDifficulty);
     
 private:

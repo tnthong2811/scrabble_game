@@ -1,7 +1,7 @@
 #pragma once
 #include "BaseStrategy.h"
-#include "../../Core/Move.h"
-#include "../../Core/dictionary/trie_dictionary.hpp" 
+#include "core/Move.h"
+#include "core/dictionary/trie_dictionary.hpp" 
 #include <random>
 #include <vector>
 #include <utility> 

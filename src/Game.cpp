@@ -48,48 +48,40 @@ void Game::processAITurn() {
     if (!aiPlayer) return;
     std::cout << "\n--- Den luot cua " << aiPlayer->getName() << " ---" << std::endl;
 
-    if (board_.isEmpty()) {
-        std::string firstWord = aiPlayer->findValidWord(dictionary_);
-        if (!firstWord.empty()) {
-            std::cout << "AI se thu di tu: " << firstWord << std::endl;
-            // Position center, horizontal, assume length fit
-            int startCol = 7 - (firstWord.length() / 2);  // Center word
-            bool success = playWord(currentPlayerId_, firstWord, firstWord, 7, startCol, true);
-            if (success) {
-                return;
-            } else {
-                std::cout << "Nuoc di dau tien that bai, AI bo luot." << std::endl;
-                passTurn(currentPlayerId_);
-            }
+    std::vector<Play> topPlays = ai_->generateTopPlays(board_, aiPlayer->getRack(), 300);
+    bool move_successful = false;
+
+    // Lặp qua từng nước đi để tìm nước đầu tiên hợp lệ
+    for (const auto& play : topPlays) {
+        if (play.isPass()) {
+            continue;
+        }
+
+        Move aiMove = play.getMove();
+        MoveResult result = board_.validateAndScoreMove(aiMove, *aiPlayer, dictionary_);
+
+        if (result.isValid) {
+            std::cout << "Nuoc di cua AI hop le! Tu: '" << aiMove.getWord() << "'. Diem: " << result.score << std::endl;
+            board_.executeMove(aiMove);
+            aiPlayer->addScore(result.score);
+            aiPlayer->removeTilesFromRack(result.lettersUsedFromRack);
+            refillRack(*aiPlayer);
+            consecutivePasses_ = 0;
+            move_successful = true;
+            break; // Thoát khỏi vòng lặp vì đã tìm thấy nước đi thành công
         } else {
-            std::cout << "AI khong co tu hop le de di nuoc dau tien, bo luot." << std::endl;
-            passTurn(currentPlayerId_);
+             std::cout << "AI's suggested move '" << aiMove.getWord() << "' is invalid. Trying next..." << std::endl;
         }
     }
 
-    Play bestPlay = ai_->generatePlay(board_, aiPlayer->getRack());
-
-    if (bestPlay.isPass()) {
+    // Nếu sau khi thử tất cả mà vẫn không thành công, AI mới thực sự bỏ lượt
+    if (!move_successful) {
+        std::cout << "AI khong tim thay nuoc di hop le nao. Bo luot." << std::endl;
         passTurn(currentPlayerId_);
-        return;
+        return; 
     }
-    
-    Move aiMove = bestPlay.getMove();
-    MoveResult result = board_.validateAndScoreMove(aiMove, *aiPlayer, dictionary_);
 
-    if (result.isValid) {
-        std::cout << "Nuoc di cua AI hop le! Tu: '" << aiMove.getWord() << "'. Diem: " << result.score << std::endl;
-        board_.executeMove(aiMove);
-        aiPlayer->addScore(result.score);
-        aiPlayer->removeTilesFromRack(result.lettersUsedFromRack);
-        refillRack(*aiPlayer);
-        consecutivePasses_ = 0;
-        nextTurn();
-    } else {
-        std::cout << "Nuoc di cua AI khong hop le: " << result.errorMessage << ". AI bo luot." << std::endl;
-        consecutivePasses_++;
-        nextTurn();
-    }
+    nextTurn();
 }
 
 void Game::nextTurn() {
