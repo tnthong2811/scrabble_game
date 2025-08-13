@@ -5,7 +5,6 @@
 namespace AI {
 namespace Utils {
 
-// Constructor và các hàm xây dựng cây được giữ nguyên
 GADDAG::GADDAG() : root_(std::make_shared<Node>()) {}
 
 void GADDAG::buildFromDictionary(const TrieDictionary& dictionary) {
@@ -35,14 +34,16 @@ void GADDAG::insertWord(const std::string& word) {
     current->isTerminal = true;
 }
 
-
-// *** TRIỂN KHAI HÀM HELPER MỚI ***
-std::shared_ptr<GADDAG::Node> GADDAG::followArc(std::shared_ptr<Node> node, char c) const {
+std::shared_ptr<Node> GADDAG::followArc(std::shared_ptr<Node> node, char c) const {
     if (!node) {
         return nullptr;
     }
     auto it = node->children.find(c);
     return (it != node->children.end()) ? it->second : nullptr;
+}
+
+std::shared_ptr<Node> GADDAG::getRoot() const {
+    return root_;
 }
 
 } // namespace Utils

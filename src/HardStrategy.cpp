@@ -1,3 +1,4 @@
+// HardStrategy.cpp - Use Utils::Node, followArc on node (shared_ptr)
 #include "AI/Strategies/HardStrategy.h"
 #include <algorithm>
 #include <random>
@@ -46,7 +47,7 @@ void HardStrategy::generateMoves(const Board& board, const std::vector<Tile>& ra
 // Hàm "Gen" - đi sang trái từ điểm neo
 void HardStrategy::gen(int row, int col, bool horizontal, const Board& board,
                        std::unordered_map<char, int>& rackCount, int& blanks,
-                       std::shared_ptr<Utils::GADDAG::Node> node, std::string& currentWord,
+                       std::shared_ptr<Utils::Node> node, std::string& currentWord,
                        std::vector<Tile>& used, int& currentScore, int& wordMult,
                        std::vector<Move>& plays, int limit) {
     if (!board.isValidPosition(row, col) || limit <= 0) return;
@@ -115,7 +116,7 @@ void HardStrategy::gen(int row, int col, bool horizontal, const Board& board,
 // Hàm "Go" - đi sang phải từ điểm neo
 void HardStrategy::go(int row, int col, bool horizontal, const Board& board,
                       std::unordered_map<char, int>& rackCount, int& blanks,
-                      std::shared_ptr<Utils::GADDAG::Node> node, std::string& currentWord,
+                      std::shared_ptr<Utils::Node> node, std::string& currentWord,
                       std::vector<Tile>& used, int& currentScore, int& wordMult,
                       std::vector<Move>& plays, int limit) {
     if (!board.isValidPosition(row, col) || limit <= 0) return;

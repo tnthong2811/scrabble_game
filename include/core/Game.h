@@ -7,6 +7,13 @@
 #include <memory>
 #include <vector>
 
+struct TurnRecord {
+    std::string playerName;
+    std::string word;
+    int score;
+    bool isPass = false;
+};
+
 class Game {
 public:
     enum class State { NOT_STARTED, PLAYING, GAME_OVER };
@@ -14,7 +21,7 @@ public:
     Game();
     void startNewGame(int aiCount = 1);
     void endGame();
-
+    const std::vector<TurnRecord>& getTurnHistory() const;
     // *** SỬA LỖI: Cập nhật chữ ký hàm này để khớp với GameUI và Game.cpp ***
     bool playWord(int playerId, const std::string& wordFromRack, const std::string& fullWord, int row, int col, bool horizontal);
     
@@ -42,6 +49,7 @@ private:
     TileBag tileBag_;
     std::vector<std::unique_ptr<Player>> players_;
     std::unique_ptr<AI::ScrabbleAI> ai_;
+    std::vector<TurnRecord> turnHistory_;
     int currentPlayerId_;
     State state_;
     int consecutivePasses_ = 0;

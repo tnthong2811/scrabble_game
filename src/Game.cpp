@@ -35,6 +35,7 @@ bool Game::playWord(int playerId, const std::string& wordFromRack, const std::st
         player->removeTilesFromRack(result.lettersUsedFromRack);
         refillRack(*player);
         consecutivePasses_ = 0;
+        turnHistory_.push_back({player->getName(), fullWord, result.score, false});
         nextTurn();
         return true;
     } else {
@@ -117,6 +118,7 @@ bool Game::swapTiles(int playerId, const std::vector<char>& letters) {
     Player& player = *players_[playerId];
     if (player.swapTiles(tileBag_, letters)) {
         refillRack(player);
+        nextTurn();
         return true;
     }
     return false;
@@ -125,6 +127,7 @@ bool Game::swapTiles(int playerId, const std::vector<char>& letters) {
 void Game::passTurn(int playerId) {
     if (state_ != State::PLAYING || playerId != currentPlayerId_) return;
     consecutivePasses_++;
+    turnHistory_.push_back({getPlayer(playerId)->getName(), "", 0, true});
     std::cout << getPlayer(playerId)->getName() << " đã bỏ lượt." << std::endl;
     nextTurn();
 }
@@ -239,3 +242,6 @@ Player* Game::getPlayer(int id) const {
 }
 int Game::getCurrentPlayerId() const { return currentPlayerId_; }
 const TileBag& Game::getTileBag() const { return tileBag_; }
+const std::vector<TurnRecord>& Game::getTurnHistory() const {
+    return turnHistory_;
+}

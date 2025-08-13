@@ -23,14 +23,17 @@ private:
     enum class UIState {
         MAIN_MENU,
         PLAYING,
+        SELECTING_SWAP,
         GAME_OVER
     };
 
     SDL_Window* window_ = nullptr;
     SDL_Renderer* renderer_ = nullptr;
     TTF_Font* fontNormal_ = nullptr;
+    TTF_Font* fontTile_ = nullptr;
     TTF_Font* fontSmall_ = nullptr;
     TTF_Font* fontBig_ = nullptr;
+    TTF_Font* fontTitle_ = nullptr;
     Game& game_;
     bool running_ = false;
     UIState currentState_ = UIState::MAIN_MENU;
@@ -40,17 +43,29 @@ private:
     SDL_Rect rackRect_;
     SDL_Rect buttonsRect_;
     SDL_Rect sidebarRect_;
+    SDL_Rect resetButtonRect_;
     SDL_Rect dynamicSubmitButtonRect_; 
     SDL_Rect dynamicPlayButtonRect_;
     SDL_Rect dynamicSkipButtonRect_;  
-
+    SDL_Rect dynamicResetButtonRect_;
+    SDL_Rect playerInfoRect_;
+    SDL_Rect opponentInfoRect_;
+    SDL_Rect tileBagRect_;
+    SDL_Rect turnHistoryRect_;
+    SDL_Rect swapButtonRect_;
+    SDL_Rect dynamicSwapButtonRect_;
+    SDL_Rect confirmSwapButtonRect_;
+    SDL_Rect dynamicConfirmSwapButtonRect_;
+    
     bool isDragging_ = false;
     int draggedRackIndex_ = -1;
     Tile draggedTile_;
     SDL_Point dragOffset_;
+    SDL_Point originalDragPos_;
     Uint32 invalidMoveTimestamp_ = 0;
     int draggedBoardTileIndex_ = -1;
     std::vector<TempPlacedTile> currentMoveTiles_;
+    std::vector<int> tilesToSwapIndices_;
 
     bool init();
     void defineLayout();
@@ -67,7 +82,10 @@ private:
     void renderButtons();
     void renderText(const std::string& text, int x, int y, TTF_Font* font, SDL_Color color);
     void renderText(const std::string& text, int containerX, int containerY, int containerW, int containerH, TTF_Font* font, SDL_Color color);
-
+    void renderPlayerPanel(const Player* player, int playerId, const SDL_Rect& rect, bool isOpponent);
+    void renderHistoryPanel(const SDL_Rect& rect);
+    void renderTileBagPanel(const SDL_Rect& rect);
+    void handleSwapSelectionEvents();
     void handleMenuEvents();
     void handleGameEvents();
     void renderMenu();
