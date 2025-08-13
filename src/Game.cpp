@@ -10,6 +10,7 @@ void Game::startNewGame(int aiCount) {
     board_.reset();
     tileBag_.reset();
     consecutivePasses_ = 0;
+    consecutiveSwaps_ = 0;
     if (!dictionary_.load("assets/dictionary/dictionary.txt")) {
         std::cerr << "LỖI: Không thể tải từ điển." << std::endl;
         state_ = State::GAME_OVER; return;
@@ -133,9 +134,7 @@ void Game::setupPlayers(int aiCount) {
 }
 
 bool Game::swapTiles(int playerId, const std::vector<char>& letters) {
-    if (state_ != State::PLAYING || playerId != currentPlayerId_ || playerId != 0) {
-        return false;
-    }
+    if (state_ != State::PLAYING || playerId != currentPlayerId_) return false;  
 
     Player& player = *players_[playerId];
     if (player.swapTiles(tileBag_, letters)) {
