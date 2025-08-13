@@ -6,7 +6,7 @@
 
 Game::Game() : currentPlayerId_(1), state_(State::NOT_STARTED), consecutivePasses_(0) {}
 
-void Game::startNewGame(int aiCount, int gameDurationMinutes) {
+void Game::startNewGame(int aiCount, int gameDurationMinutes, AI::Difficulty difficulty) {
     board_.reset();
     tileBag_.reset();
     consecutivePasses_ = 0;
@@ -20,7 +20,7 @@ void Game::startNewGame(int aiCount, int gameDurationMinutes) {
         std::cerr << "LỖI: Không thể tải từ điển." << std::endl;
         state_ = State::GAME_OVER; return;
     }
-    ai_ = std::make_unique<AI::ScrabbleAI>(AI::Difficulty::MEDIUM, dictionary_);
+    ai_ = std::make_unique<AI::ScrabbleAI>(difficulty, dictionary_);
     setupPlayers(aiCount);
     for (auto& player : players_) { if(player) refillRack(*player); }
     state_ = State::PLAYING;

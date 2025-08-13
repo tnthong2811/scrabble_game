@@ -60,24 +60,42 @@ bool Player::canFormWord(const std::string& word) const {
     return true;
 }
 
-bool Player::swapTiles(TileBag& bag, const std::vector<char>& letters) {
-    std::string wordFromLetters(letters.begin(), letters.end());
-    if (letters.empty() || !canFormWord(wordFromLetters) || letters.size() > static_cast<size_t>(bag.remainingTiles())) {
+bool Player::swapTiles(TileBag& bag, const std::vector<char>& lettersToSwap) {
+    // 1. Kiểm tra các điều kiện cơ bản
+    if (lettersToSwap.empty() || lettersToSwap.size() > rack_.size() || lettersToSwap.size() > static_cast<size_t>(bag.remainingTiles())) {
         return false;
     }
 
-    std::vector<Tile> tilesToReturn;
-    for(char c : letters) {
-        // Tạo lại tile với isBlank=false vì chúng là các chữ cái cụ thể
-        tilesToReturn.emplace_back(c, false);
+    // 2. Tạo một bản sao của các chữ cái cần tìm để có thể xóa đi
+    auto lettersToFind = lettersToSwap;
+
+    std::vector<Tile> tilesToReturn; // Chứa các quân cờ sẽ trả về túi
+    std::vector<Tile> newRack;       // Chứa các quân cờ người chơi sẽ giữ lại
+
+    // 3. Duyệt qua khay hiện tại của người chơi
+    for (const auto& tileOnRack : rack_) {
+        // Tìm xem chữ cái của quân cờ hiện tại có nằm trong danh sách cần đổi không
+        auto it = std::find(lettersToFind.begin(), lettersToFind.end(), tileOnRack.getLetter());
+
+        if (it != lettersToFind.end()) {
+            // Nếu tìm thấy, thêm quân cờ này vào danh sách trả về
+            tilesToReturn.push_back(tileOnRack);
+            // Xóa chữ cái này khỏi danh sách cần tìm để xử lý đúng các trường hợp trùng lặp
+            lettersToFind.erase(it); 
+        } else {
+            // Nếu không phải quân cờ cần đổi, giữ nó lại trong khay mới
+            newRack.push_back(tileOnRack);
+        }
     }
 
-    for(char c : letters) {
-        bool isBlank = (c == '?');
-        tilesToReturn.emplace_back(isBlank ? '?' : c, isBlank);
+    // 4. Nếu sau khi duyệt xong mà vẫn còn chữ cái chưa tìm thấy,
+    // có nghĩa là người chơi yêu cầu đổi những quân cờ họ không có -> không hợp lệ.
+    if (!lettersToFind.empty()) {
+        return false; 
     }
 
-    removeTilesFromRack(wordFromLetters);
+    // 5. Nếu mọi thứ hợp lệ, cập nhật lại khay của người chơi và trả cờ về túi
+    rack_ = newRack; 
     bag.returnTiles(tilesToReturn);
 
     return true;

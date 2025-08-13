@@ -3,6 +3,7 @@
 #include "SDL_ttf.h"
 #include "SDL_image.h"
 #include "core/Game.h"
+#include "AI/ScrabbleAI.h"
 #include "core/Board.h"
 #include <vector>
 #include <string>
@@ -68,7 +69,10 @@ private:
     SDL_Rect optionsPanelRect_;               
     SDL_Rect timeButton15Rect_;               
     SDL_Rect timeButton30Rect_;              
-    SDL_Rect timeButton45Rect_;               
+    SDL_Rect timeButton45Rect_;          
+    SDL_Rect difficultyButtonEasyRect_;
+    SDL_Rect difficultyButtonMediumRect_;
+    AI::Difficulty selectedDifficulty_ = AI::Difficulty::MEDIUM;     
 
     bool isDragging_ = false;
     int draggedRackIndex_ = -1;

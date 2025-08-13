@@ -22,7 +22,7 @@ public:
     enum class State { NOT_STARTED, PLAYING, GAME_OVER };
 
     Game();
-    void startNewGame(int aiCount = 1, int gameDurationMinutes = 45);
+    void startNewGame(int aiCount = 1, int gameDurationMinutes = 45, AI::Difficulty difficulty = AI::Difficulty::EASY);
     void endGame();
     const std::vector<Play>& getSuggestions() const;
     const std::vector<TurnRecord>& getTurnHistory() const;
