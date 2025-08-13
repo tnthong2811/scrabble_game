@@ -63,6 +63,8 @@ private:
     SDL_Rect dynamicConfirmSwapButtonRect_;
     SDL_Rect replayButtonRect_;
     SDL_Rect dynamicReplayButtonRect_;
+    SDL_Rect mainMenuButtonRect_;
+    SDL_Rect dynamicMainMenuButtonRect_;
     SDL_Texture* gameOverBackgroundTexture_ = nullptr;
     SDL_Texture* menuImageTexture_ = nullptr; 
     SDL_Rect imagePanelRect_;                 

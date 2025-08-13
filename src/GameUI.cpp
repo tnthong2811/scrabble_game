@@ -113,8 +113,6 @@ void GameUI::defineLayout() {
     confirmSwapButtonRect_ = buttonsRect_; 
     sidebarRect_ = { BOARD_AREA_WIDTH, 0, SCREEN_WIDTH - BOARD_AREA_WIDTH, SCREEN_HEIGHT };
     
-    replayButtonRect_ = { SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 100, 200, 60 };
-
     // Bố cục của sidebar
     int sidebarPadding = 30;
     int panelSpacing = 15;
@@ -126,7 +124,20 @@ void GameUI::defineLayout() {
     turnHistoryRect_ = { playerInfoRect_.x, tileBagRect_.y + tileBagRect_.h + panelSpacing, playerInfoRect_.w, 180 };
     suggestionRect_ = { playerInfoRect_.x, turnHistoryRect_.y + turnHistoryRect_.h + panelSpacing, playerInfoRect_.w, 150 };
     
+    // --- BỐ CỤC MÀN HÌNH KẾT THÚC ---
+    const int gameOverButtonWidth = 200;
+    const int gameOverButtonHeight = 60;
+    const int gameOverButtonSpacing = 30;
+    const int totalGameOverButtonsWidth = gameOverButtonWidth * 2 + gameOverButtonSpacing;
+
+    int gameOverButtonsStartY = SCREEN_HEIGHT / 2 + 100;
+    int gameOverButtonsStartX = (SCREEN_WIDTH - totalGameOverButtonsWidth) / 2;
+
+    replayButtonRect_ = { gameOverButtonsStartX, gameOverButtonsStartY, gameOverButtonWidth, gameOverButtonHeight };
+    mainMenuButtonRect_ = { replayButtonRect_.x + gameOverButtonWidth + gameOverButtonSpacing, gameOverButtonsStartY, gameOverButtonWidth, gameOverButtonHeight };
+
     // --- Phần dynamic rects ---
+    dynamicMainMenuButtonRect_ = mainMenuButtonRect_;
     dynamicSwapButtonRect_ = swapButtonRect_;
     dynamicConfirmSwapButtonRect_ = confirmSwapButtonRect_;
     dynamicSubmitButtonRect_ = buttonsRect_;
@@ -182,7 +193,7 @@ void GameUI::run() {
 }
 
 void GameUI::update() {
-    if (currentState_ != UIState::GAME_OVER && game_.getState() == Game::State::GAME_OVER) {
+    if (currentState_ == UIState::PLAYING && game_.getState() == Game::State::GAME_OVER) {
         if (gameOverBackgroundTexture_) {
             SDL_DestroyTexture(gameOverBackgroundTexture_);
             gameOverBackgroundTexture_ = nullptr;
@@ -195,8 +206,32 @@ void GameUI::update() {
         currentState_ = UIState::GAME_OVER;
     }
 
-    if (currentState_ != UIState::GAME_OVER && game_.getState() == Game::State::GAME_OVER) {
-        currentState_ = UIState::GAME_OVER;
+    if (currentState_ == UIState::GAME_OVER) {
+        const float scale = 1.1f;
+        int mouseX, mouseY;
+        SDL_GetMouseState(&mouseX, &mouseY);
+
+        // Hover nút Replay
+        if (mouseX >= replayButtonRect_.x && mouseX < replayButtonRect_.x + replayButtonRect_.w &&
+            mouseY >= replayButtonRect_.y && mouseY < replayButtonRect_.y + replayButtonRect_.h) {
+            dynamicReplayButtonRect_.w = replayButtonRect_.w * scale;
+            dynamicReplayButtonRect_.h = replayButtonRect_.h * scale;
+            dynamicReplayButtonRect_.x = replayButtonRect_.x - (dynamicReplayButtonRect_.w - replayButtonRect_.w) / 2;
+            dynamicReplayButtonRect_.y = replayButtonRect_.y - (dynamicReplayButtonRect_.h - replayButtonRect_.h) / 2;
+        } else {
+            dynamicReplayButtonRect_ = replayButtonRect_;
+        }
+
+        // Hover nút Main Menu
+        if (mouseX >= mainMenuButtonRect_.x && mouseX < mainMenuButtonRect_.x + mainMenuButtonRect_.w &&
+            mouseY >= mainMenuButtonRect_.y && mouseY < mainMenuButtonRect_.y + mainMenuButtonRect_.h) {
+            dynamicMainMenuButtonRect_.w = mainMenuButtonRect_.w * scale;
+            dynamicMainMenuButtonRect_.h = mainMenuButtonRect_.h * scale;
+            dynamicMainMenuButtonRect_.x = mainMenuButtonRect_.x - (dynamicMainMenuButtonRect_.w - mainMenuButtonRect_.w) / 2;
+            dynamicMainMenuButtonRect_.y = mainMenuButtonRect_.y - (dynamicMainMenuButtonRect_.h - mainMenuButtonRect_.h) / 2;
+        } else {
+            dynamicMainMenuButtonRect_ = mainMenuButtonRect_;
+        }
     }
 
     int mouseX, mouseY;
@@ -216,20 +251,7 @@ void GameUI::update() {
         }
     }
 
-    if (currentState_ == UIState::GAME_OVER) {
-        if (mouseX >= replayButtonRect_.x && mouseX < replayButtonRect_.x + replayButtonRect_.w &&
-            mouseY >= replayButtonRect_.y && mouseY < replayButtonRect_.y + replayButtonRect_.h) {
-                
-            dynamicReplayButtonRect_.w = replayButtonRect_.w * scale;
-            dynamicReplayButtonRect_.h = replayButtonRect_.h * scale;
-            dynamicReplayButtonRect_.x = replayButtonRect_.x - (dynamicReplayButtonRect_.w - replayButtonRect_.w) / 2;
-            dynamicReplayButtonRect_.y = replayButtonRect_.y - (dynamicReplayButtonRect_.h - replayButtonRect_.h) / 2;
-        } else {
-            dynamicReplayButtonRect_ = replayButtonRect_;
-        }
-    }
-
-    if (currentState_ == UIState::PLAYING || currentState_ == UIState::SELECTING_SWAP) {
+        if (currentState_ == UIState::PLAYING || currentState_ == UIState::SELECTING_SWAP) {
         if (mouseX >= buttonsRect_.x && mouseX < buttonsRect_.x + buttonsRect_.w &&
             mouseY >= buttonsRect_.y && mouseY < buttonsRect_.y + buttonsRect_.h) {
             dynamicSubmitButtonRect_.w = buttonsRect_.w * scale;
@@ -488,7 +510,7 @@ void GameUI::handleSwapSelectionEvents() {
             Player* player = game_.getPlayer(0);
             if (!player) continue;
 
-            // 1. Xử lý click nút CONFIRM SWAP
+            // Xử lý click nút CONFIRM SWAP
             if (mouseX >= confirmSwapButtonRect_.x && mouseX < confirmSwapButtonRect_.x + confirmSwapButtonRect_.w &&
                 mouseY >= confirmSwapButtonRect_.y && mouseY < confirmSwapButtonRect_.y + confirmSwapButtonRect_.h) {
                 
@@ -500,13 +522,12 @@ void GameUI::handleSwapSelectionEvents() {
                     }
                     game_.swapTiles(0, lettersToSwap);
                 }
-                // Quay lại trạng thái chơi game
                 tilesToSwapIndices_.clear();
                 currentState_ = UIState::PLAYING;
                 continue;
             }
 
-            // 2. Xử lý click nút CANCEL (dùng nút RESET)
+            // Xử lý click nút CANCEL (dùng nút RESET)
             if (mouseX >= resetButtonRect_.x && mouseX < resetButtonRect_.x + resetButtonRect_.w &&
                 mouseY >= resetButtonRect_.y && mouseY < resetButtonRect_.y + resetButtonRect_.h) {
                 
@@ -515,10 +536,20 @@ void GameUI::handleSwapSelectionEvents() {
                 continue;
             }
 
-            // 3. Xử lý click chọn/bỏ chọn tile trên khay
+            // --- SỬA LỖI: Đồng bộ hóa logic tính toán vị trí tile ---
+            // Sao chép công thức từ hàm renderRack()
+            const int RACK_CAPACITY = 7;
+            const int TILE_SPACING = 8;
+            int totalTileWidth = RACK_CAPACITY * TILE_SIZE + (RACK_CAPACITY - 1) * TILE_SPACING;
+            int startX = rackRect_.x + (rackRect_.w - totalTileWidth) / 2;
+            int startY = rackRect_.y + (rackRect_.h - TILE_SIZE) / 2;
+
+            // Xử lý click chọn/bỏ chọn tile trên khay
             const auto& rack = player->getRack();
             for (size_t i = 0; i < rack.size(); ++i) {
-                SDL_Rect tileRect = { rackRect_.x + (int)i * (TILE_SIZE + 5), rackRect_.y, TILE_SIZE, TILE_SIZE };
+                // Tạo hitbox với vị trí đã được đồng bộ
+                SDL_Rect tileRect = { startX + (int)i * (TILE_SIZE + TILE_SPACING), startY, TILE_SIZE, TILE_SIZE };
+
                 if (mouseX >= tileRect.x && mouseX < tileRect.x + tileRect.w &&
                     mouseY >= tileRect.y && mouseY < tileRect.y + tileRect.h) {
                     
@@ -663,7 +694,13 @@ void GameUI::renderGameOver() {
     SDL_SetRenderDrawColor(renderer_, COLOR_BUTTON.r, COLOR_BUTTON.g, COLOR_BUTTON.b, 255);
     SDL_RenderFillRect(renderer_, &dynamicReplayButtonRect_);
     renderText("REPLAY", dynamicReplayButtonRect_.x, dynamicReplayButtonRect_.y, 
-               dynamicReplayButtonRect_.w, dynamicReplayButtonRect_.h, fontNormal_, COLOR_TEXT_LIGHT); // <-- Sửa ở đây
+               dynamicReplayButtonRect_.w, dynamicReplayButtonRect_.h, fontNormal_, COLOR_TEXT_LIGHT);
+
+    // Vẽ nút Main Menu
+    SDL_SetRenderDrawColor(renderer_, 80, 80, 90, 255); // Màu xám cho nút phụ
+    SDL_RenderFillRect(renderer_, &dynamicMainMenuButtonRect_);
+    renderText("MAIN MENU", dynamicMainMenuButtonRect_.x, dynamicMainMenuButtonRect_.y, 
+               dynamicMainMenuButtonRect_.w, dynamicMainMenuButtonRect_.h, fontNormal_, COLOR_TEXT_LIGHT);
 }
 
 void GameUI::handleGameOverEvents() {
@@ -681,13 +718,18 @@ void GameUI::handleGameOverEvents() {
             if (mouseX >= replayButtonRect_.x && mouseX < replayButtonRect_.x + replayButtonRect_.w &&
                 mouseY >= replayButtonRect_.y && mouseY < replayButtonRect_.y + replayButtonRect_.h) {
                 
-                // Bắt đầu lại game
-                game_.startNewGame(1);
-                
-                // Quay về trạng thái đang chơi
+                game_.startNewGame(1, selectedGameTime_, selectedDifficulty_);
                 currentState_ = UIState::PLAYING;
 
-                // Hủy texture cũ để chuẩn bị cho lần game over tiếp theo
+                if (gameOverBackgroundTexture_) {
+                    SDL_DestroyTexture(gameOverBackgroundTexture_);
+                    gameOverBackgroundTexture_ = nullptr;
+                }
+            }
+            // Kiểm tra nếu nhấn vào nút Main Menu
+            else if (mouseX >= mainMenuButtonRect_.x && mouseX < mainMenuButtonRect_.x + mainMenuButtonRect_.w &&
+                     mouseY >= mainMenuButtonRect_.y && mouseY < mainMenuButtonRect_.y + mainMenuButtonRect_.h) {
+                currentState_ = UIState::MAIN_MENU;
                 if (gameOverBackgroundTexture_) {
                     SDL_DestroyTexture(gameOverBackgroundTexture_);
                     gameOverBackgroundTexture_ = nullptr;
