@@ -36,6 +36,7 @@ private:
     TTF_Font* fontHistory_ = nullptr;
     TTF_Font* fontBig_ = nullptr;
     TTF_Font* fontTitle_ = nullptr;
+    TTF_Font* fontCoords_ = nullptr;
     Game& game_;
     bool running_ = false;
     UIState currentState_ = UIState::MAIN_MENU;

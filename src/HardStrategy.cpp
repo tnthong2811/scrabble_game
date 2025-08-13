@@ -217,7 +217,7 @@ std::unordered_set<char> HardStrategy::computeCrossSet(int row, int col, bool pe
     }
     return allowed;
 }
-// Tìm các điểm neo (giữ nguyên)
+
 std::vector<std::pair<int, int>> HardStrategy::findAnchorPoints(const Board& board) {
     std::vector<std::pair<int, int>> anchors;
     if (board.isEmpty()) {

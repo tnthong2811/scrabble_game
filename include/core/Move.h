@@ -2,6 +2,7 @@
 #include "Tile.h"
 #include <vector>
 #include <string>
+#include <tuple>
 
 class Move {
 public:
@@ -30,6 +31,11 @@ public:
     
     // Helper methods
     bool isAdjacentTo(const Move& other) const;
+
+    bool operator<(const Move& other) const {
+        return std::tie(word_, row_, col_, direction_) < 
+            std::tie(other.word_, other.row_, other.col_, other.direction_);
+    }
 
 private:
     std::string word_;

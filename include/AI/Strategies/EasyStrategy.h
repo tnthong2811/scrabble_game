@@ -15,7 +15,6 @@ public:
     std::vector<Move> generatePlays(const Board& board, const std::vector<Tile>& rack) override;
 private:
     const TrieDictionary& dictionary_;
-    Move generateRandomValidPlay(const Board& board, const std::vector<Tile>& rack, std::mt19937& gen);
     std::vector<std::pair<int, int>> findAnchorPoints(const Board& board);
 };
 

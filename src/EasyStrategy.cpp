@@ -1,65 +1,68 @@
 #include "AI/Strategies/EasyStrategy.h"
+#include "core/Board.h"
 #include <random>
+#include <algorithm>
+#include <vector>
 
 namespace AI {
 namespace Strategies {
 
-EasyStrategy::EasyStrategy(const TrieDictionary& dictionary) : dictionary_(dictionary) {}  // New
+EasyStrategy::EasyStrategy(const TrieDictionary& dictionary) : dictionary_(dictionary) {}
 
+// --- THUẬT TOÁN ĐÃ ĐƯỢC CẢI TIẾN ---
 std::vector<Move> EasyStrategy::generatePlays(const Board& board, const std::vector<Tile>& rack) {
-    std::vector<Move> plays;
+    std::vector<Move> potential_plays;
     
-    const int MAX_ATTEMPTS = 50;
+    // 1. Lấy tất cả các từ có thể tạo ra từ rack
+    std::string rack_letters;
+    int blank_count = 0;
+    for (const auto& tile : rack) {
+        if (tile.isBlank()) {
+            blank_count++;
+        } else {
+            rack_letters += tile.getLetter();
+        }
+    }
+    std::vector<std::string> possible_words = dictionary_.find_possible_words_with_blank(rack_letters, blank_count);
+
+    // 2. Xáo trộn danh sách từ và các điểm neo để tạo sự ngẫu nhiên
     std::random_device rd;
-    std::mt19937 gen(rd()); 
-    
-    for (int i = 0; i < MAX_ATTEMPTS; i++) {
-        if (plays.size() >= 5) break; 
+    std::mt19937 gen(rd());
+    std::shuffle(possible_words.begin(), possible_words.end(), gen);
 
-        Move play = generateRandomValidPlay(board, rack, gen);
-        if (play.isValid() && dictionary_.contains(play.getWord())) {  // Check dict
-            plays.push_back(play);
-        }
-    }
-    
-    return plays;
-}
+    auto anchors = findAnchorPoints(board);
+    std::shuffle(anchors.begin(), anchors.end(), gen);
 
-Move EasyStrategy::generateRandomValidPlay(const Board& board, const std::vector<Tile>& rack, std::mt19937& gen) {
-    std::uniform_int_distribution<> dirDist(0, 1);
+    // 3. Thử đặt các từ vào các điểm neo cho đến khi tìm thấy một vài nước đi hợp lệ
+    for (const auto& word : possible_words) {
+        if (word.length() < 2) continue; // Bỏ qua các từ quá ngắn
 
-    std::string word;
-    for (const Tile& tile : rack) {
-        if (!tile.isBlank()) {
-            word += tile.getLetter();
-        }
-        if (word.length() >= 3) break;
-    }
-    if (word.empty()) {
-        for (const Tile& tile : rack) {
-            if (tile.isBlank()) {
-                word = "A"; 
-                break;
+        for (const auto& anchor : anchors) {
+            for (bool is_horizontal : {true, false}) {
+                Move move(word, anchor.first, anchor.second, 
+                          is_horizontal ? Move::Direction::HORIZONTAL : Move::Direction::VERTICAL);
+                
+                // Trả về một danh sách nhỏ các nước đi tiềm năng để ScrabbleAI đánh giá
+                // Điều này giúp AI Easy đôi khi vẫn có thể chọn nước đi tốt hơn một chút
+                potential_plays.push_back(move);
+                if (potential_plays.size() >= 10) { // Giới hạn số lượng gợi ý để không quá chậm
+                    return potential_plays;
+                }
             }
         }
     }
-    if (word.empty()) return Move("", 0, 0, Move::Direction::HORIZONTAL); 
-
-    // Use anchor for position
-    auto anchors = findAnchorPoints(board);  // Add function similar to Hard
-    if (anchors.empty()) return Move("", 0, 0, Move::Direction::HORIZONTAL); 
-    auto anchor = anchors[gen() % anchors.size()];
-    int row = anchor.first;
-    int col = anchor.second;
-
-    Move::Direction dir = (dirDist(gen) == 0) ? Move::Direction::HORIZONTAL : Move::Direction::VERTICAL;
-
-    return Move(word, row, col, dir);
+    
+    return potential_plays;
 }
 
-// Add this function
+// Hàm này tìm các ô trống nằm cạnh một chữ cái đã có (hoặc ô trung tâm)
 std::vector<std::pair<int, int>> EasyStrategy::findAnchorPoints(const Board& board) {
     std::vector<std::pair<int, int>> anchors;
+    if (board.isEmpty()) {
+        anchors.emplace_back(7, 7);
+        return anchors;
+    }
+
     for (int i = 0; i < Board::SIZE; ++i) {
         for (int j = 0; j < Board::SIZE; ++j) {
             if (board.isAnchor(i, j)) {
@@ -67,7 +70,6 @@ std::vector<std::pair<int, int>> EasyStrategy::findAnchorPoints(const Board& boa
             }
         }
     }
-    if (anchors.empty()) anchors.emplace_back(7, 7);  // Center if empty
     return anchors;
 }
 

@@ -35,6 +35,7 @@ bool GameUI::init() {
     fontSmall_ = TTF_OpenFont("assets/font/Pixel.ttf", 11);
     fontBig_ = TTF_OpenFont("assets/font/Pixel.ttf", 36);
     fontTitle_ = TTF_OpenFont("assets/font/Pixel.ttf", 96);
+    fontCoords_ = TTF_OpenFont("assets/font/Pixel.ttf", 12);
 
     menuImageTexture_ = IMG_LoadTexture(renderer_, "assets/image/menuimage.png");
     if (!menuImageTexture_) {
@@ -78,23 +79,23 @@ void GameUI::defineLayout() {
     playButtonRect_ = { optionsCenterX - 125, optionsPanelRect_.y + optionsPanelRect_.h - 150, 250, 80 };
 
     // --- BỐ CỤC MÀN HÌNH CHƠI GAME ---
-    boardRect_ = { BOARD_X, BOARD_Y, BOARD_SIZE_PX, BOARD_SIZE_PX };
-    
-    // Định nghĩa chiều rộng của các nút và khoảng cách
-    const int submitWidth = 130;
-    const int skipWidth = 80;
-    const int resetWidth = 90;
-    const int swapWidth = 90;
-    const int buttonSpacing = 15;
-    const int inGameButtonHeight = 45;
+    const int COORDS_GUTTER = 25; 
 
-    // Tính tổng chiều rộng mà các nút chiếm dụng
+    // 2. Dịch chuyển bàn cờ vào trong để có không gian
+    boardRect_ = { BOARD_X + COORDS_GUTTER, BOARD_Y + COORDS_GUTTER, BOARD_SIZE_PX, BOARD_SIZE_PX };
+    
+    // --- SỬA LỖI CĂN CHỈNH ---
+    // 3. Tính toán chiều rộng và vị trí của các nút
+    const int submitWidth = 130, skipWidth = 80, resetWidth = 90, swapWidth = 90, buttonSpacing = 15;
+    const int inGameButtonHeight = 45;
     int totalButtonsWidth = submitWidth + skipWidth + resetWidth + swapWidth + (3 * buttonSpacing);
 
-    // Định nghĩa khay rack (rackRect_) với chiều rộng mới
-    rackRect_ = { BOARD_X, boardRect_.y + boardRect_.h + 15, totalButtonsWidth, 60 };
+    // 4. Tính toán vị trí X để căn giữa khay và các nút với bàn cờ
+    int boardCenterX = boardRect_.x + boardRect_.w / 2;
+    int rackStartX = boardCenterX - totalButtonsWidth / 2;
 
-    // Định nghĩa vị trí các nút dựa trên rackRect_
+    // 5. Định nghĩa khay rack (rackRect_) và các nút với vị trí X đã được căn giữa
+    rackRect_ = { rackStartX, boardRect_.y + boardRect_.h + 15, totalButtonsWidth, 60 };
     buttonsRect_ = { rackRect_.x, rackRect_.y + rackRect_.h + 10, submitWidth, inGameButtonHeight };
     skipButtonRect_ = { buttonsRect_.x + buttonsRect_.w + buttonSpacing, buttonsRect_.y, skipWidth, inGameButtonHeight };
     resetButtonRect_ = { skipButtonRect_.x + skipButtonRect_.w + buttonSpacing, skipButtonRect_.y, resetWidth, inGameButtonHeight };
@@ -127,12 +128,12 @@ void GameUI::defineLayout() {
     dynamicReplayButtonRect_ = replayButtonRect_;
 }
 
-
 void GameUI::close() {
     TTF_CloseFont(fontNormal_);
     TTF_CloseFont(fontSmall_);
     TTF_CloseFont(fontBig_);
     TTF_CloseFont(fontTitle_);
+    TTF_CloseFont(fontCoords_);
     if (gameOverBackgroundTexture_) {
         SDL_DestroyTexture(gameOverBackgroundTexture_);
     }
@@ -691,6 +692,24 @@ void GameUI::render() {
 }
 
 void GameUI::renderBoard() {
+    const int COORDS_GUTTER = 25; 
+
+    // Vẽ số cho các cột (1-15, phía trên bàn cờ)
+    for (int i = 0; i < Board::SIZE; ++i) {
+        std::string numStr = std::to_string(i + 1);
+        int x = boardRect_.x + i * CELL_SIZE;
+        int y = boardRect_.y - COORDS_GUTTER;
+        renderText(numStr, x, y, CELL_SIZE, COORDS_GUTTER, fontCoords_, COLOR_TEXT_LIGHT);
+    }
+
+    // Vẽ số cho các hàng (1-15, bên trái bàn cờ)
+    for (int i = 0; i < Board::SIZE; ++i) {
+        std::string numStr = std::to_string(i + 1);
+        int x = boardRect_.x - COORDS_GUTTER;
+        int y = boardRect_.y + i * CELL_SIZE;
+        renderText(numStr, x, y, COORDS_GUTTER, CELL_SIZE, fontCoords_, COLOR_TEXT_LIGHT);
+    }
+
     // 1. Vẽ nền cho bàn cờ
     SDL_SetRenderDrawColor(renderer_, COLOR_BOARD_BG.r, COLOR_BOARD_BG.g, COLOR_BOARD_BG.b, 255);
     SDL_RenderFillRect(renderer_, &boardRect_);

@@ -1,77 +1,144 @@
 #include "AI/Strategies/MediumStrategy.h"
 #include <algorithm>
-#include <functional>
+#include <set>
 
 namespace AI {
 namespace Strategies {
 
-MediumStrategy::MediumStrategy(const TrieDictionary& dictionary) : dictionary_(dictionary) {}    
-// Hàm chính được đơn giản hóa: chỉ tạo ra các nước đi, không xác thực.
+MediumStrategy::MediumStrategy(const TrieDictionary& dictionary) : dictionary_(dictionary) {}
+
 std::vector<Move> MediumStrategy::generatePlays(const Board& board, const std::vector<Tile>& rack) {
-    std::vector<Move> potential_plays;
-
-    // 1. Tìm các vị trí có thể bắt đầu một nước đi
-    std::vector<std::pair<int, int>> valid_positions = findValidPositions(board);
-
-    // 2. Tạo các từ có thể có từ khay chữ (giới hạn độ dài cho cấp độ Medium)
-    const int MAX_WORD_LENGTH = 7;  // Increase to 7
-    std::vector<std::string> valid_words = generatePotentialWords(rack, MAX_WORD_LENGTH);
+    std::set<Move> potential_plays;
     
-    // 3. Kết hợp từ và vị trí để tạo ra danh sách các nước đi (Move)
-    for (const auto& pos : valid_positions) {
-        for (bool is_horizontal : {true, false}) {
-            for (const auto& word : valid_words) {
-                // AI chỉ cần "đề xuất" nước đi. Lớp Game sẽ kiểm tra xem nó có hợp lệ không.
-                potential_plays.emplace_back(word, pos.first, pos.second,
-                                             is_horizontal ? Move::Direction::HORIZONTAL : Move::Direction::VERTICAL);
-            }
-        }
-    }
-
-    // AI không cần sắp xếp hay giới hạn số lượng ở đây nữa,
-    // vì ScrabbleAI sẽ đánh giá tất cả các nước đi này.
-    return potential_plays;
-}
-
-// Hàm này tìm các ô trống nằm cạnh một chữ cái đã có.
-std::vector<std::pair<int, int>> MediumStrategy::findValidPositions(const Board& board) {
-    std::vector<std::pair<int, int>> positions;
-
-    // Nếu bàn cờ trống, vị trí duy nhất có thể đi là ô trung tâm.
-    if (board.isEmpty()) {
-        positions.emplace_back(Board::SIZE / 2, Board::SIZE / 2);
-        return positions;
-    }
-
-    // Nếu không, tìm tất cả các "điểm neo".
-    for (int row = 0; row < Board::SIZE; ++row) {
-        for (int col = 0; col < Board::SIZE; ++col) {
-            // isAnchor đã được public và AI có thể gọi nó.
-            if (board.isAnchor(row, col)) {
-                positions.emplace_back(row, col);
-            }
-        }
-    }
-    return positions;
-}
-
-// Hàm này tạo ra các từ có thể có từ các chữ cái trên tay.
-std::vector<std::string> MediumStrategy::generatePotentialWords(const std::vector<Tile>& rack, int maxLength) {
-    std::string letters;
+    std::unordered_map<char, int> rackLetters;
     int blankCount = 0;
     for (const auto& tile : rack) {
-        if (tile.isBlank()) {
-            blankCount++;
-        } else {
-            letters += tile.getLetter();
+        if (tile.isBlank()) blankCount++;
+        else rackLetters[tile.getLetter()]++;
+    }
+
+    if (board.isEmpty()) {
+        auto words = dictionary_.find_possible_words_with_blank(rackToString(rack), blankCount);
+        for (const auto& word : words) {
+            if (word.length() > 1) {
+                potential_plays.insert(Move(word, 7, 7, Move::Direction::HORIZONTAL));
+            }
+        }
+        return std::vector<Move>(potential_plays.begin(), potential_plays.end());
+    }
+
+    for (int r = 0; r < 15; ++r) {
+        for (int c = 0; c < 15; ++c) {
+            if (board.isAnchor(r, c)) {
+                generateMovesForAnchor(board, r, c, rackLetters, blankCount, potential_plays);
+            }
         }
     }
-    // Use new dict func for generate with blank
-    auto potential = dictionary_.find_possible_words_with_blank(letters, blankCount);
-    // Filter unique and sort (optional)
-    std::sort(potential.begin(), potential.end());
-    potential.erase(std::unique(potential.begin(), potential.end()), potential.end());
-    return potential;
+
+    return std::vector<Move>(potential_plays.begin(), potential_plays.end());
+}
+
+void MediumStrategy::generateMovesForAnchor(const Board& board, int r, int c, 
+                                            const std::unordered_map<char, int>& rackLetters, int blankCount,
+                                            std::set<Move>& plays) {
+    std::string prefix = "";
+    int limit = 0;
+    for (int i = c - 1; i >= 0 && board.hasTile(r, i); --i) {
+        // *** SỬA LỖI: Dùng getCell(r, i).tile thay vì getTile(r, i) ***
+        prefix = board.getCell(r, i).tile.getLetter() + prefix;
+        limit++;
+    }
+    if(prefix.empty() || dictionary_.isPrefix(prefix)){
+        extendRight(board, prefix, r, c, rackLetters, blankCount, limit, plays);
+    }
+
+    prefix = "";
+    limit = 0;
+    for (int i = r - 1; i >= 0 && board.hasTile(i, c); --i) {
+        // *** SỬA LỖI: Dùng getCell(i, c).tile thay vì getTile(i, c) ***
+        prefix = board.getCell(i, c).tile.getLetter() + prefix;
+        limit++;
+    }
+    if(prefix.empty() || dictionary_.isPrefix(prefix)){
+        extendDown(board, prefix, r, c, rackLetters, blankCount, limit, plays);
+    }
+}
+
+void MediumStrategy::extendRight(const Board& board, std::string currentWord, int r, int c,
+                                 std::unordered_map<char, int> rackLetters, int blankCount, int limit,
+                                 std::set<Move>& plays) {
+    if (c < 15 && board.hasTile(r, c)) {
+        // *** SỬA LỖI: Dùng getCell(r, c).tile thay vì getTile(r, c) ***
+        char letter = board.getCell(r, c).tile.getLetter();
+        if (dictionary_.isPrefix(currentWord + letter)) {
+            extendRight(board, currentWord + letter, r, c + 1, rackLetters, blankCount, limit, plays);
+        }
+        return;
+    }
+
+    if (dictionary_.contains(currentWord) && limit > 0) {
+        plays.insert(Move(currentWord, r, c - currentWord.length(), Move::Direction::HORIZONTAL));
+    }
+    if (c >= 15) return;
+
+    for (auto const& [letter, count] : rackLetters) {
+        if (count > 0) {
+            if (dictionary_.isPrefix(currentWord + letter)) {
+                auto newRack = rackLetters;
+                newRack[letter]--;
+                extendRight(board, currentWord + letter, r, c + 1, newRack, blankCount, limit + 1, plays);
+            }
+        }
+    }
+    if (blankCount > 0) {
+        for (char l = 'A'; l <= 'Z'; ++l) {
+            if (dictionary_.isPrefix(currentWord + l)) {
+                extendRight(board, currentWord + l, r, c + 1, rackLetters, blankCount - 1, limit + 1, plays);
+            }
+        }
+    }
+}
+
+void MediumStrategy::extendDown(const Board& board, std::string currentWord, int r, int c,
+                                std::unordered_map<char, int> rackLetters, int blankCount, int limit,
+                                std::set<Move>& plays) {
+    if (r < 15 && board.hasTile(r, c)) {
+        // *** SỬA LỖI: Dùng getCell(r, c).tile thay vì getTile(r, c) ***
+        char letter = board.getCell(r, c).tile.getLetter();
+        if (dictionary_.isPrefix(currentWord + letter)) {
+            extendDown(board, currentWord + letter, r + 1, c, rackLetters, blankCount, limit, plays);
+        }
+        return;
+    }
+    if (dictionary_.contains(currentWord) && limit > 0) {
+        plays.insert(Move(currentWord, r - currentWord.length(), c, Move::Direction::VERTICAL));
+    }
+    if (r >= 15) return;
+
+    for (auto const& [letter, count] : rackLetters) {
+        if (count > 0) {
+            if (dictionary_.isPrefix(currentWord + letter)) {
+                auto newRack = rackLetters;
+                newRack[letter]--;
+                extendDown(board, currentWord + letter, r + 1, c, newRack, blankCount, limit + 1, plays);
+            }
+        }
+    }
+    if (blankCount > 0) {
+        for (char l = 'A'; l <= 'Z'; ++l) {
+            if (dictionary_.isPrefix(currentWord + l)) {
+                extendDown(board, currentWord + l, r + 1, c, rackLetters, blankCount - 1, limit + 1, plays);
+            }
+        }
+    }
+}
+
+std::string MediumStrategy::rackToString(const std::vector<Tile>& rack) {
+    std::string s = "";
+    for (const auto& tile : rack) {
+        if (!tile.isBlank()) s += tile.getLetter();
+    }
+    return s;
 }
 
 } // namespace Strategies
