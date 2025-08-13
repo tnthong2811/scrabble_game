@@ -6,11 +6,16 @@
 
 Game::Game() : currentPlayerId_(1), state_(State::NOT_STARTED), consecutivePasses_(0) {}
 
-void Game::startNewGame(int aiCount) {
+void Game::startNewGame(int aiCount, int gameDurationMinutes) {
     board_.reset();
     tileBag_.reset();
     consecutivePasses_ = 0;
     consecutiveSwaps_ = 0;
+    
+    totalGameTimeRemaining_ = gameDurationMinutes * 60 * 1000; 
+    currentTurnTimeRemaining_ = 60 * 1000;    
+    lastUpdateTime_ = SDL_GetTicks();         
+
     if (!dictionary_.load("assets/dictionary/dictionary.txt")) {
         std::cerr << "LỖI: Không thể tải từ điển." << std::endl;
         state_ = State::GAME_OVER; return;
@@ -19,7 +24,7 @@ void Game::startNewGame(int aiCount) {
     setupPlayers(aiCount);
     for (auto& player : players_) { if(player) refillRack(*player); }
     state_ = State::PLAYING;
-    currentPlayerId_ = 1;
+    currentPlayerId_ = 1; 
 }
 
 bool Game::playWord(int playerId, const std::string& wordFromRack, const std::string& fullWord, int row, int col, bool horizontal) {
@@ -108,6 +113,8 @@ void Game::nextTurn() {
         return;
     }
     currentPlayerId_ = (currentPlayerId_ + 1) % players_.size();
+    currentTurnTimeRemaining_ = 60 * 1000;
+
     if (currentPlayerId_ == 0) {
         Player* humanPlayer = getPlayer(0);
         if (humanPlayer) {
@@ -295,4 +302,42 @@ const std::vector<TurnRecord>& Game::getTurnHistory() const {
 
 const std::vector<Play>& Game::getSuggestions() const {
     return currentSuggestions_;
+}
+
+void Game::updateTimers() {
+    if (state_ != State::PLAYING) return;
+
+    Uint32 currentTime = SDL_GetTicks();
+    Uint32 deltaTime = currentTime - lastUpdateTime_;
+    lastUpdateTime_ = currentTime;
+
+    if (totalGameTimeRemaining_ > deltaTime) {
+        totalGameTimeRemaining_ -= deltaTime;
+    } else {
+        totalGameTimeRemaining_ = 0;
+    }
+
+    if (currentTurnTimeRemaining_ > deltaTime) {
+        currentTurnTimeRemaining_ -= deltaTime;
+    } else {
+        currentTurnTimeRemaining_ = 0;
+    }
+
+    if (totalGameTimeRemaining_ == 0) {
+        std::cout << "Hết giờ! Trò chơi kết thúc." << std::endl;
+        endGame();
+        return;
+    }
+    if (currentTurnTimeRemaining_ == 0) {
+        std::cout << getPlayer(currentPlayerId_)->getName() << " hết giờ! Tự động bỏ lượt." << std::endl;
+        passTurn(currentPlayerId_);
+    }
+}
+
+Uint32 Game::getTotalTimeRemaining() const {
+    return totalGameTimeRemaining_;
+}
+
+Uint32 Game::getTurnTimeRemaining() const {
+    return currentTurnTimeRemaining_;
 }

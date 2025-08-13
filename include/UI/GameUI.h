@@ -1,6 +1,7 @@
 #pragma once
 #include "SDL.h"
 #include "SDL_ttf.h"
+#include "SDL_image.h"
 #include "core/Game.h"
 #include "core/Board.h"
 #include <vector>
@@ -61,14 +62,22 @@ private:
     SDL_Rect replayButtonRect_;
     SDL_Rect dynamicReplayButtonRect_;
     SDL_Texture* gameOverBackgroundTexture_ = nullptr;
-    
+    SDL_Texture* menuImageTexture_ = nullptr; 
+    SDL_Rect imagePanelRect_;                 
+    SDL_Rect optionsPanelRect_;               
+    SDL_Rect timeButton15Rect_;               
+    SDL_Rect timeButton30Rect_;              
+    SDL_Rect timeButton45Rect_;               
+
     bool isDragging_ = false;
     int draggedRackIndex_ = -1;
+    int selectedGameTime_ = 45;
     Tile draggedTile_;
     SDL_Point dragOffset_;
     SDL_Point originalDragPos_;
     Uint32 invalidMoveTimestamp_ = 0;
     int draggedBoardTileIndex_ = -1;
+    SDL_Rect timerPanelRect_;
     std::vector<TempPlacedTile> currentMoveTiles_;
     std::vector<int> tilesToSwapIndices_;
 
@@ -85,6 +94,8 @@ private:
     void renderRack();
     void renderSidebar();
     void renderButtons();
+    void renderTimerPanel(const SDL_Rect& rect);
+    std::string formatTime(Uint32 ms);
     void renderText(const std::string& text, int x, int y, TTF_Font* font, SDL_Color color);
     void renderText(const std::string& text, int containerX, int containerY, int containerW, int containerH, TTF_Font* font, SDL_Color color);
     void renderPlayerPanel(const Player* player, int playerId, const SDL_Rect& rect, bool isOpponent);

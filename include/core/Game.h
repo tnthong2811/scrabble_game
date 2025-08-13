@@ -5,6 +5,7 @@
 #include "Play.h"
 #include "TileBag.h"
 #include "AI/ScrabbleAI.h"
+#include "SDL.h"
 #include <memory>
 #include <vector>
 
@@ -21,7 +22,7 @@ public:
     enum class State { NOT_STARTED, PLAYING, GAME_OVER };
 
     Game();
-    void startNewGame(int aiCount = 1);
+    void startNewGame(int aiCount = 1, int gameDurationMinutes = 45);
     void endGame();
     const std::vector<Play>& getSuggestions() const;
     const std::vector<TurnRecord>& getTurnHistory() const;
@@ -46,6 +47,11 @@ public:
     // Save/Load
     bool saveGame(const std::string& filename) const;
     bool loadGame(const std::string& filename);
+
+    //Time
+    void updateTimers(); 
+    Uint32 getTotalTimeRemaining() const;
+    Uint32 getTurnTimeRemaining() const;
 private:
     Board board_;
     TrieDictionary dictionary_;
@@ -58,6 +64,9 @@ private:
     State state_;
     int consecutivePasses_ = 0;
     int consecutiveSwaps_ = 0;
+    Uint32 totalGameTimeRemaining_;   
+    Uint32 currentTurnTimeRemaining_; 
+    Uint32 lastUpdateTime_;
 
     // Helper methods
     void setupPlayers(int aiCount);

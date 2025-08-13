@@ -14,14 +14,9 @@ std::vector<Move> MediumStrategy::generatePlays(const Board& board, const std::v
     std::vector<std::pair<int, int>> valid_positions = findValidPositions(board);
 
     // 2. Tạo các từ có thể có từ khay chữ (giới hạn độ dài cho cấp độ Medium)
-    const int MAX_WORD_LENGTH = 7;
-    std::vector<std::string> potential_words = generatePotentialWords(rack, MAX_WORD_LENGTH);
-    std::vector<std::string> valid_words;
-    for (const auto& word : potential_words) {
-        if (dictionary_.contains(word)) {
-            valid_words.push_back(word);
-        }
-    }
+    const int MAX_WORD_LENGTH = 7;  // Increase to 7
+    std::vector<std::string> valid_words = generatePotentialWords(rack, MAX_WORD_LENGTH);
+    
     // 3. Kết hợp từ và vị trí để tạo ra danh sách các nước đi (Move)
     for (const auto& pos : valid_positions) {
         for (bool is_horizontal : {true, false}) {
@@ -62,43 +57,21 @@ std::vector<std::pair<int, int>> MediumStrategy::findValidPositions(const Board&
 
 // Hàm này tạo ra các từ có thể có từ các chữ cái trên tay.
 std::vector<std::string> MediumStrategy::generatePotentialWords(const std::vector<Tile>& rack, int maxLength) {
-    std::vector<char> letters;
+    std::string letters;
     int blankCount = 0;
     for (const auto& tile : rack) {
         if (tile.isBlank()) {
             blankCount++;
         } else {
-            letters.push_back(tile.getLetter());
+            letters += tile.getLetter();
         }
     }
-
-    std::vector<std::string> words;
-    std::sort(letters.begin(), letters.end());
-
-    if (blankCount == 0) {
-        do {
-            for (int len = 2; len <= std::min((int)letters.size(), maxLength); ++len) {
-                words.emplace_back(letters.begin(), letters.begin() + len);
-            }
-        } while (std::next_permutation(letters.begin(), letters.end()));
-    } else {
-        // Simple wildcard for 1 blank
-        std::string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        for (char rep : alphabet) {
-            std::vector<char> temp = letters;
-            temp.push_back(rep);
-            std::sort(temp.begin(), temp.end());
-            do {
-                for (int len = 2; len <= std::min((int)temp.size(), maxLength); ++len) {
-                    words.emplace_back(temp.begin(), temp.begin() + len);
-                }
-            } while (std::next_permutation(temp.begin(), temp.end()));
-        }
-    }
-
-    std::sort(words.begin(), words.end());
-    words.erase(std::unique(words.begin(), words.end()), words.end());
-    return words;
+    // Use new dict func for generate with blank
+    auto potential = dictionary_.find_possible_words_with_blank(letters, blankCount);
+    // Filter unique and sort (optional)
+    std::sort(potential.begin(), potential.end());
+    potential.erase(std::unique(potential.begin(), potential.end()), potential.end());
+    return potential;
 }
 
 } // namespace Strategies

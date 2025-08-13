@@ -5,7 +5,7 @@
 
 const SDL_Color COLOR_BACKGROUND = { 34, 40, 49, 255 };    // Xám xanh đậm
 const SDL_Color COLOR_BOARD_BG = { 20, 25, 30, 255 };      // Nền bàn cờ
-const SDL_Color COLOR_NORMAL_CELL = { 205, 193, 180, 255 }; // Be
+const SDL_Color COLOR_NORMAL_CELL = { 205, 193, 180, 255 };
 const SDL_Color COLOR_SIDEBAR = { 57, 62, 70, 255 };      // Xám vừa
 const SDL_Color COLOR_TILE = { 251, 248, 239, 255 };      // Vàng kem
 const SDL_Color COLOR_TEXT_DARK = { 50, 50, 50, 255 };     // Chữ tối
@@ -36,6 +36,11 @@ bool GameUI::init() {
     fontBig_ = TTF_OpenFont("assets/font/Pixel.ttf", 36);
     fontTitle_ = TTF_OpenFont("assets/font/Pixel.ttf", 96);
 
+    menuImageTexture_ = IMG_LoadTexture(renderer_, "assets/image/menuimage.png");
+    if (!menuImageTexture_) {
+        std::cerr << "Lỗi không tải được assets/image/menu.png: " << IMG_GetError() << std::endl;
+    }
+
     if (!window_ || !renderer_ || !fontNormal_ || !fontSmall_ || !fontBig_) return false;
 
     defineLayout();
@@ -43,27 +48,76 @@ bool GameUI::init() {
 }
 
 void GameUI::defineLayout() {
+    // --- BỐ CỤC MÀN HÌNH MENU ---
+    // 1. Đặt kích thước cho các panel. Panel ảnh là hình vuông.
+    const int IMAGE_PANEL_SIZE = 650;
+    const int OPTIONS_PANEL_WIDTH = 500;
+
+    // 2. Căn giữa toàn bộ khối menu theo chiều dọc
+    int startY = (SCREEN_HEIGHT - IMAGE_PANEL_SIZE) / 2;
+    if (startY < 0) startY = 0;
+
+    // 3. Đặt vị trí cho panel ảnh (cách lề trái một khoảng cố định)
+    int imageStartX = 80; 
+    imagePanelRect_ = { imageStartX, startY, IMAGE_PANEL_SIZE, IMAGE_PANEL_SIZE };
+
+    // 4. Căn giữa panel tùy chọn trong không gian còn lại bên phải
+    int remainingSpaceX = imageStartX + IMAGE_PANEL_SIZE;
+    int remainingSpaceWidth = SCREEN_WIDTH - remainingSpaceX;
+    int optionsStartX = remainingSpaceX + (remainingSpaceWidth - OPTIONS_PANEL_WIDTH) / 2;
+    optionsPanelRect_ = { optionsStartX, startY, OPTIONS_PANEL_WIDTH, IMAGE_PANEL_SIZE };
+
+    // Bố cục các nút bên trong panel tùy chọn (logic này không đổi)
+    int optionsCenterX = optionsPanelRect_.x + optionsPanelRect_.w / 2;
+    int buttonWidth = 280;
+    int menuButtonHeight = 55;
+    int timeButtonsTopY = optionsPanelRect_.y + 200;
+    timeButton15Rect_ = { optionsCenterX - buttonWidth / 2, timeButtonsTopY, buttonWidth, menuButtonHeight };
+    timeButton30Rect_ = { optionsCenterX - buttonWidth / 2, timeButton15Rect_.y + menuButtonHeight + 25, buttonWidth, menuButtonHeight };
+    timeButton45Rect_ = { optionsCenterX - buttonWidth / 2, timeButton30Rect_.y + menuButtonHeight + 25, buttonWidth, menuButtonHeight };
+    playButtonRect_ = { optionsCenterX - 125, optionsPanelRect_.y + optionsPanelRect_.h - 150, 250, 80 };
+
+    // --- BỐ CỤC MÀN HÌNH CHƠI GAME ---
     boardRect_ = { BOARD_X, BOARD_Y, BOARD_SIZE_PX, BOARD_SIZE_PX };
-    rackRect_ = { BOARD_X, boardRect_.y + boardRect_.h + 15, 520, 60 };
-    buttonsRect_ = { rackRect_.x, rackRect_.y + rackRect_.h + 10, 130, 45 };
-    skipButtonRect_ = { buttonsRect_.x + buttonsRect_.w + 15, buttonsRect_.y, 80, 45 };
-    resetButtonRect_ = { skipButtonRect_.x + skipButtonRect_.w + 15, skipButtonRect_.y, 90, 45 };
+    
+    // Định nghĩa chiều rộng của các nút và khoảng cách
+    const int submitWidth = 130;
+    const int skipWidth = 80;
+    const int resetWidth = 90;
+    const int swapWidth = 90;
+    const int buttonSpacing = 15;
+    const int inGameButtonHeight = 45;
+
+    // Tính tổng chiều rộng mà các nút chiếm dụng
+    int totalButtonsWidth = submitWidth + skipWidth + resetWidth + swapWidth + (3 * buttonSpacing);
+
+    // Định nghĩa khay rack (rackRect_) với chiều rộng mới
+    rackRect_ = { BOARD_X, boardRect_.y + boardRect_.h + 15, totalButtonsWidth, 60 };
+
+    // Định nghĩa vị trí các nút dựa trên rackRect_
+    buttonsRect_ = { rackRect_.x, rackRect_.y + rackRect_.h + 10, submitWidth, inGameButtonHeight };
+    skipButtonRect_ = { buttonsRect_.x + buttonsRect_.w + buttonSpacing, buttonsRect_.y, skipWidth, inGameButtonHeight };
+    resetButtonRect_ = { skipButtonRect_.x + skipButtonRect_.w + buttonSpacing, skipButtonRect_.y, resetWidth, inGameButtonHeight };
+    swapButtonRect_ = { resetButtonRect_.x + resetButtonRect_.w + buttonSpacing, resetButtonRect_.y, swapWidth, inGameButtonHeight };
+
+    // --- Phần còn lại của layout ---
+    confirmSwapButtonRect_ = buttonsRect_; 
     sidebarRect_ = { BOARD_AREA_WIDTH, 0, SCREEN_WIDTH - BOARD_AREA_WIDTH, SCREEN_HEIGHT };
     
-    int sidebarPadding = 30;
-    int panelSpacing = 20;
-    
-    playerInfoRect_ = { sidebarRect_.x + sidebarPadding, sidebarRect_.y + 40, sidebarRect_.w - 2 * sidebarPadding, 80 };
-    opponentInfoRect_ = { playerInfoRect_.x, playerInfoRect_.y + playerInfoRect_.h + panelSpacing, playerInfoRect_.w, 80 };
-    tileBagRect_ = { playerInfoRect_.x, opponentInfoRect_.y + opponentInfoRect_.h + panelSpacing, playerInfoRect_.w, 80 };
-    turnHistoryRect_ = { playerInfoRect_.x, tileBagRect_.y + tileBagRect_.h + panelSpacing, playerInfoRect_.w, 220 };
-    suggestionRect_ = { playerInfoRect_.x, turnHistoryRect_.y + turnHistoryRect_.h + panelSpacing, playerInfoRect_.w, 150 };
-    playButtonRect_ = { SCREEN_WIDTH / 2 - 75, SCREEN_HEIGHT / 2 + 50, 150, 60 };
     replayButtonRect_ = { SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 100, 200, 60 };
-    swapButtonRect_ = { resetButtonRect_.x + resetButtonRect_.w + 15, resetButtonRect_.y, 90, 45 };
-    replayButtonRect_ = { SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 100, 200, 60 };
-    confirmSwapButtonRect_ = buttonsRect_; 
 
+    // Bố cục của sidebar
+    int sidebarPadding = 30;
+    int panelSpacing = 15;
+    
+    playerInfoRect_ = { sidebarRect_.x + sidebarPadding, sidebarRect_.y + 40, sidebarRect_.w - 2 * sidebarPadding, 70 };
+    opponentInfoRect_ = { playerInfoRect_.x, playerInfoRect_.y + playerInfoRect_.h + panelSpacing, playerInfoRect_.w, 70 };
+    timerPanelRect_ = { playerInfoRect_.x, opponentInfoRect_.y + opponentInfoRect_.h + panelSpacing, playerInfoRect_.w, 60 };
+    tileBagRect_ = { playerInfoRect_.x, timerPanelRect_.y + timerPanelRect_.h + panelSpacing, playerInfoRect_.w, 80 };
+    turnHistoryRect_ = { playerInfoRect_.x, tileBagRect_.y + tileBagRect_.h + panelSpacing, playerInfoRect_.w, 180 };
+    suggestionRect_ = { playerInfoRect_.x, turnHistoryRect_.y + turnHistoryRect_.h + panelSpacing, playerInfoRect_.w, 150 };
+    
+    // --- Phần dynamic rects ---
     dynamicSwapButtonRect_ = swapButtonRect_;
     dynamicConfirmSwapButtonRect_ = confirmSwapButtonRect_;
     dynamicSubmitButtonRect_ = buttonsRect_;
@@ -72,6 +126,7 @@ void GameUI::defineLayout() {
     dynamicPlayButtonRect_ = playButtonRect_;
     dynamicReplayButtonRect_ = replayButtonRect_;
 }
+
 
 void GameUI::close() {
     TTF_CloseFont(fontNormal_);
@@ -83,18 +138,37 @@ void GameUI::close() {
     }
     SDL_DestroyRenderer(renderer_);
     SDL_DestroyWindow(window_);
+    IMG_Quit();
     TTF_Quit();
     SDL_Quit();
 }
 
 void GameUI::run() {
     running_ = true;
+
+    const double MS_PER_UPDATE = 16.666; // ~60 updates per second
+    double previousTime = SDL_GetTicks();
+    double lag = 0.0;
+
     while (running_) {
+        double currentTime = SDL_GetTicks();
+        double elapsed = currentTime - previousTime;
+        previousTime = currentTime;
+        lag += elapsed;
+
+        // 1. Xử lý tất cả input của người dùng
         handleEvents();
-        update();
-        updateGame();  
-        render();      
-        SDL_Delay(16);
+
+        // 2. Cập nhật logic game theo các bước thời gian cố định
+        while (lag >= MS_PER_UPDATE) {
+            update();     // Cập nhật UI (hover,...)
+            updateGame(); // Cập nhật logic AI
+            game_.updateTimers(); // Cập nhật logic thời gian
+            lag -= MS_PER_UPDATE;
+        }
+        
+        // 3. Vẽ mọi thứ ra màn hình
+        render(); 
     }
 }
 
@@ -204,7 +278,6 @@ void GameUI::update() {
 void GameUI::updateGame() {
     if (currentState_ == UIState::PLAYING) {
         if (game_.getState() == Game::State::PLAYING && game_.getCurrentPlayerId() != 0) {
-            SDL_Delay(500);
             game_.update();
         }
     }
@@ -229,6 +302,11 @@ void GameUI::handleGameEvents() {
         // --- XỬ LÝ NHẤN CHUỘT ---
         if (e.type == SDL_MOUSEBUTTONDOWN) {
             if (isDragging_) continue; // Nếu đang kéo rồi thì bỏ qua
+            const int RACK_CAPACITY = 7;
+            const int TILE_SPACING = 8;
+            int totalTileWidth = RACK_CAPACITY * TILE_SIZE + (RACK_CAPACITY - 1) * TILE_SPACING;
+            int startX = rackRect_.x + (rackRect_.w - totalTileWidth) / 2;
+            int startY = rackRect_.y + (rackRect_.h - TILE_SIZE) / 2;
 
             // Nút RESET
             if (mouseX >= resetButtonRect_.x && mouseX < resetButtonRect_.x + resetButtonRect_.w &&
@@ -311,7 +389,9 @@ void GameUI::handleGameEvents() {
                     if (placedTile.originalRackIndex == (int)i) { alreadyPlaced = true; break; }
                 }
                 if (alreadyPlaced) continue;
-                SDL_Rect tileRect = { rackRect_.x + (int)i * (TILE_SIZE + 5), rackRect_.y, TILE_SIZE, TILE_SIZE };
+                
+                SDL_Rect tileRect = { startX + (int)i * (TILE_SIZE + TILE_SPACING), startY, TILE_SIZE, TILE_SIZE };
+                
                 if (mouseX >= tileRect.x && mouseX < tileRect.x + tileRect.w && mouseY >= tileRect.y && mouseY < tileRect.y + tileRect.h) {
                     isDragging_ = true;
                     draggedRackIndex_ = i;
@@ -456,11 +536,28 @@ void GameUI::handleMenuEvents() {
         if (e.type == SDL_MOUSEBUTTONDOWN) {
             int mouseX, mouseY;
             SDL_GetMouseState(&mouseX, &mouseY);
-            if (mouseX >= playButtonRect_.x && mouseX < playButtonRect_.x + playButtonRect_.w &&
-                mouseY >= playButtonRect_.y && mouseY < playButtonRect_.y + playButtonRect_.h) {
+
+            // Xử lý click nút 15 phút
+            if (mouseX >= timeButton15Rect_.x && mouseX < timeButton15Rect_.x + timeButton15Rect_.w &&
+                mouseY >= timeButton15Rect_.y && mouseY < timeButton15Rect_.y + timeButton15Rect_.h) {
+                selectedGameTime_ = 15;
+            }
+            // Xử lý click nút 30 phút
+            else if (mouseX >= timeButton30Rect_.x && mouseX < timeButton30Rect_.x + timeButton30Rect_.w &&
+                     mouseY >= timeButton30Rect_.y && mouseY < timeButton30Rect_.y + timeButton30Rect_.h) {
+                selectedGameTime_ = 30;
+            }
+            // Xử lý click nút 45 phút
+            else if (mouseX >= timeButton45Rect_.x && mouseX < timeButton45Rect_.x + timeButton45Rect_.w &&
+                     mouseY >= timeButton45Rect_.y && mouseY < timeButton45Rect_.y + timeButton45Rect_.h) {
+                selectedGameTime_ = 45;
+            }
+            // Xử lý click nút Play
+            else if (mouseX >= playButtonRect_.x && mouseX < playButtonRect_.x + playButtonRect_.w &&
+                     mouseY >= playButtonRect_.y && mouseY < playButtonRect_.y + playButtonRect_.h) {
                 
-                // *** BẮT ĐẦU GAME KHI CLICK VÀO NÚT PLAY ***
-                game_.startNewGame(1);
+                // *** BẮT ĐẦU GAME VỚI THỜI GIAN ĐÃ CHỌN ***
+                game_.startNewGame(1, selectedGameTime_);
                 currentState_ = UIState::PLAYING;
             }
         }
@@ -468,42 +565,41 @@ void GameUI::handleMenuEvents() {
 }
 
 void GameUI::renderMenu() {
-    const std::vector<SDL_Color> rainbowColors = {
-        {255, 0, 0, 255},    // Đỏ
-        {255, 165, 0, 255},  // Cam
-        {255, 255, 0, 255},  // Vàng
-        {0, 255, 0, 255},    // Lục
-        {0, 0, 255, 255},    // Lam
-        {75, 0, 130, 255},   // Chàm
-        {238, 130, 238, 255} // Tím
-    };
-
-    std::string title = "SCRABBLE";
-    int totalWidth = 0;
-    int charHeight = 0;
-
-    for (char c : title) {
-        int w;
-        TTF_SizeText(fontTitle_, std::string(1, c).c_str(), &w, &charHeight);
-        totalWidth += w;
+    // 1. Vẽ ảnh nền bên trái
+    if (menuImageTexture_) {
+        SDL_RenderCopy(renderer_, menuImageTexture_, NULL, &imagePanelRect_);
+    } else {
+        // Nếu không có ảnh, vẽ một màu nền thay thế
+        SDL_SetRenderDrawColor(renderer_, 30, 30, 30, 255);
+        SDL_RenderFillRect(renderer_, &imagePanelRect_);
     }
 
-    int currentX = (SCREEN_WIDTH - totalWidth) / 2;
-    int y = SCREEN_HEIGHT / 2 - 150;
+    // 2. Vẽ panel tùy chọn bên phải
+    SDL_SetRenderDrawColor(renderer_, COLOR_BACKGROUND.r, COLOR_BACKGROUND.g, COLOR_BACKGROUND.b, 255);
+    SDL_RenderFillRect(renderer_, &optionsPanelRect_);
 
-    for (size_t i = 0; i < title.length(); ++i) {
-        std::string letter(1, title[i]);
-        SDL_Color color = rainbowColors[i % rainbowColors.size()]; 
-        
-        renderText(letter, currentX, y, fontTitle_, color);
-        int w;
-        TTF_SizeText(fontTitle_, letter.c_str(), &w, nullptr);
-        currentX += w;
-    }
+    // 3. Vẽ tiêu đề và các nút chọn thời gian
+    renderText("Select Game Time", optionsPanelRect_.x, 180, optionsPanelRect_.w, 40, fontBig_, COLOR_TEXT_LIGHT);
 
+    // Nút 15 phút
+    SDL_SetRenderDrawColor(renderer_, (selectedGameTime_ == 15) ? COLOR_BUTTON.r : 80, (selectedGameTime_ == 15) ? COLOR_BUTTON.g : 80, (selectedGameTime_ == 15) ? COLOR_BUTTON.b : 90, 255);
+    SDL_RenderFillRect(renderer_, &timeButton15Rect_);
+    renderText("15 Minutes", timeButton15Rect_.x, timeButton15Rect_.y, timeButton15Rect_.w, timeButton15Rect_.h, fontNormal_, COLOR_TEXT_LIGHT);
+
+    // Nút 30 phút
+    SDL_SetRenderDrawColor(renderer_, (selectedGameTime_ == 30) ? COLOR_BUTTON.r : 80, (selectedGameTime_ == 30) ? COLOR_BUTTON.g : 80, (selectedGameTime_ == 30) ? COLOR_BUTTON.b : 90, 255);
+    SDL_RenderFillRect(renderer_, &timeButton30Rect_);
+    renderText("30 Minutes", timeButton30Rect_.x, timeButton30Rect_.y, timeButton30Rect_.w, timeButton30Rect_.h, fontNormal_, COLOR_TEXT_LIGHT);
+
+    // Nút 45 phút
+    SDL_SetRenderDrawColor(renderer_, (selectedGameTime_ == 45) ? COLOR_BUTTON.r : 80, (selectedGameTime_ == 45) ? COLOR_BUTTON.g : 80, (selectedGameTime_ == 45) ? COLOR_BUTTON.b : 90, 255);
+    SDL_RenderFillRect(renderer_, &timeButton45Rect_);
+    renderText("45 Minutes", timeButton45Rect_.x, timeButton45Rect_.y, timeButton45Rect_.w, timeButton45Rect_.h, fontNormal_, COLOR_TEXT_LIGHT);
+
+    // 4. Vẽ nút Play
     SDL_SetRenderDrawColor(renderer_, COLOR_BUTTON.r, COLOR_BUTTON.g, COLOR_BUTTON.b, 255);
     SDL_RenderFillRect(renderer_, &dynamicPlayButtonRect_); 
-    renderText("PLAY", dynamicPlayButtonRect_.x, dynamicPlayButtonRect_.y, dynamicPlayButtonRect_.w, dynamicPlayButtonRect_.h, fontTile_, COLOR_TEXT_LIGHT);
+    renderText("PLAY", dynamicPlayButtonRect_.x, dynamicPlayButtonRect_.y, dynamicPlayButtonRect_.w, dynamicPlayButtonRect_.h, fontBig_, COLOR_TEXT_LIGHT);
 }
 
 void GameUI::renderGameOver() {
@@ -659,17 +755,37 @@ void GameUI::renderBoard() {
 }
 
 void GameUI::renderRack() {
+    // 1. Vẽ một nền gỗ cho khay rack
+    SDL_SetRenderDrawColor(renderer_, 205, 193, 180, 255);
+    SDL_RenderFillRect(renderer_, &rackRect_);
+    SDL_SetRenderDrawColor(renderer_, 205, 193, 180, 255); 
+    SDL_RenderDrawRect(renderer_, &rackRect_);
+
+    // 2. Vẽ các ô trống để đặt tile
+    const int RACK_CAPACITY = 7; // Khay Scrabble có 7 ô
+    const int TILE_SPACING = 8;
+    int totalTileWidth = RACK_CAPACITY * TILE_SIZE + (RACK_CAPACITY - 1) * TILE_SPACING;
+    int startX = rackRect_.x + (rackRect_.w - totalTileWidth) / 2;
+    int startY = rackRect_.y + (rackRect_.h - TILE_SIZE) / 2;
+
+    SDL_Rect slotRect = { 0, startY, TILE_SIZE, TILE_SIZE };
+    SDL_SetRenderDrawColor(renderer_, 65, 40, 30, 150); // Màu rãnh tối hơn
+
+    for (int i = 0; i < RACK_CAPACITY; ++i) {
+        slotRect.x = startX + i * (TILE_SIZE + TILE_SPACING);
+        SDL_RenderFillRect(renderer_, &slotRect);
+    }
+
+    // 3. Vẽ các tile của người chơi lên trên các ô trống
     Player* player = game_.getPlayer(game_.getCurrentPlayerId());
     if (!player) return;
 
     const auto& rack = player->getRack();
     for (size_t i = 0; i < rack.size(); ++i) {
-        // Ẩn tile nếu nó đang được kéo
+        // Ẩn tile nếu nó đang được kéo hoặc đã được đặt tạm lên bàn cờ
         if (isDragging_ && (int)i == draggedRackIndex_) {
             continue;
         }
-
-        // Ẩn tile nếu nó đã được đặt tạm lên bàn cờ
         bool alreadyPlaced = false;
         for(const auto& placedTile : currentMoveTiles_) {
             if (placedTile.originalRackIndex == (int)i) {
@@ -681,10 +797,11 @@ void GameUI::renderRack() {
             continue;
         }
 
-        // Vẽ tile bình thường trên khay
-        int x = rackRect_.x + i * (TILE_SIZE + 5);
-        int y = rackRect_.y;
-        // *** THÊM LOGIC HIGHLIGHT KHI CHỌN SWAP ***
+        // Tính toán vị trí x để đặt tile vào đúng ô
+        int x = startX + i * (TILE_SIZE + TILE_SPACING);
+        int y = startY;
+
+        // Xử lý highlight khi chọn đổi bài
         bool isSelectedForSwap = false;
         if (currentState_ == UIState::SELECTING_SWAP) {
             auto it = std::find(tilesToSwapIndices_.begin(), tilesToSwapIndices_.end(), i);
@@ -693,11 +810,10 @@ void GameUI::renderRack() {
             }
         }
 
-        // Nếu được chọn, vẽ một lớp mờ màu xanh lên trên
         if (isSelectedForSwap) {
             renderTile(rack[i], x, y);
             SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
-            SDL_SetRenderDrawColor(renderer_, 0, 173, 181, 100); // Màu xanh mờ
+            SDL_SetRenderDrawColor(renderer_, 0, 173, 181, 100);
             SDL_Rect highlightRect = {x, y, TILE_SIZE, TILE_SIZE};
             SDL_RenderFillRect(renderer_, &highlightRect);
             SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_NONE);
@@ -811,6 +927,7 @@ void GameUI::renderSidebar() {
 
     renderPlayerPanel(human_player, 0, playerInfoRect_, false); 
     renderPlayerPanel(ai_player, 1, opponentInfoRect_, true);
+    renderTimerPanel(timerPanelRect_);
     renderTileBagPanel(tileBagRect_);
     renderHistoryPanel(turnHistoryRect_);
     renderSuggestionPanel(suggestionRect_);
@@ -867,4 +984,29 @@ void GameUI::renderText(const std::string& text, int containerX, int containerY,
     SDL_RenderCopy(renderer_, texture, NULL, &destRect);
     SDL_FreeSurface(surface);
     SDL_DestroyTexture(texture);
+}
+
+std::string GameUI::formatTime(Uint32 ms) {
+    if (ms == 0) return "00:00";
+    Uint32 totalSeconds = ms / 1000;
+    Uint32 minutes = totalSeconds / 60;
+    Uint32 seconds = totalSeconds % 60;
+
+    char buffer[6];
+    snprintf(buffer, sizeof(buffer), "%02u:%02u", minutes, seconds);
+    return std::string(buffer);
+}
+
+void GameUI::renderTimerPanel(const SDL_Rect& rect) {
+    // Vẽ nền
+    SDL_SetRenderDrawColor(renderer_, 40, 50, 60, 255);
+    SDL_RenderFillRect(renderer_, &rect);
+
+    // Lấy và định dạng thời gian
+    std::string totalTimeStr = "Game: " + formatTime(game_.getTotalTimeRemaining());
+    std::string turnTimeStr = "Turn: " + formatTime(game_.getTurnTimeRemaining());
+
+    // Vẽ thời gian
+    renderText(totalTimeStr, rect.x + 15, rect.y + 10, fontNormal_, COLOR_TEXT_LIGHT);
+    renderText(turnTimeStr, rect.x + 15, rect.y + 35, fontNormal_, COLOR_TEXT_LIGHT);
 }
