@@ -18,7 +18,7 @@ void Game::startNewGame(int aiCount) {
     setupPlayers(aiCount);
     for (auto& player : players_) { if(player) refillRack(*player); }
     state_ = State::PLAYING;
-    currentPlayerId_ = 1; // AI đi trước
+    currentPlayerId_ = 1;
 }
 
 bool Game::playWord(int playerId, const std::string& wordFromRack, const std::string& fullWord, int row, int col, bool horizontal) {
@@ -35,7 +35,7 @@ bool Game::playWord(int playerId, const std::string& wordFromRack, const std::st
         player->removeTilesFromRack(result.lettersUsedFromRack);
         refillRack(*player);
         consecutivePasses_ = 0;
-        turnHistory_.push_back({player->getName(), fullWord, result.score, false});
+        turnHistory_.push_back({player->getName(), fullWord, result.score, false, false});
         nextTurn();
         return true;
     } else {
@@ -52,7 +52,6 @@ void Game::processAITurn() {
     std::vector<Play> topPlays = ai_->generateTopPlays(board_, aiPlayer->getRack(), 300);
     bool move_successful = false;
 
-    // Lặp qua từng nước đi để tìm nước đầu tiên hợp lệ
     for (const auto& play : topPlays) {
         if (play.isPass()) {
             continue;
@@ -68,17 +67,32 @@ void Game::processAITurn() {
             aiPlayer->removeTilesFromRack(result.lettersUsedFromRack);
             refillRack(*aiPlayer);
             consecutivePasses_ = 0;
+            turnHistory_.push_back({aiPlayer->getName(), aiMove.getWord(), result.score, false, false});
             move_successful = true;
-            break; // Thoát khỏi vòng lặp vì đã tìm thấy nước đi thành công
+            break; 
         } else {
              std::cout << "AI's suggested move '" << aiMove.getWord() << "' is invalid. Trying next..." << std::endl;
         }
     }
 
-    // Nếu sau khi thử tất cả mà vẫn không thành công, AI mới thực sự bỏ lượt
     if (!move_successful) {
+        if (consecutiveSwaps_ < 1 && !tileBag_.isEmpty()) { 
+            std::vector<char> toSwap = aiPlayer->selectSwapTiles();
+            if (!toSwap.empty()) {
+                std::cout << "AI swap tiles: ";
+                for (char c : toSwap) std::cout << c << " ";
+                std::cout << std::endl;
+                bool swapSuccess = swapTiles(currentPlayerId_, toSwap);
+                if (swapSuccess) {
+                    consecutiveSwaps_++;
+                    consecutivePasses_ = 0;
+                    return;
+                }
+            }
+        }
         std::cout << "AI khong tim thay nuoc di hop le nao. Bo luot." << std::endl;
         passTurn(currentPlayerId_);
+        consecutiveSwaps_ = 0;  
         return; 
     }
 
@@ -93,6 +107,14 @@ void Game::nextTurn() {
         return;
     }
     currentPlayerId_ = (currentPlayerId_ + 1) % players_.size();
+    if (currentPlayerId_ == 0) {
+        Player* humanPlayer = getPlayer(0);
+        if (humanPlayer) {
+            currentSuggestions_ = ai_->generateTopPlays(board_, humanPlayer->getRack(), 5);
+        }
+    } else {
+        currentSuggestions_.clear();
+    }
 }
 
 void Game::update() {
@@ -117,6 +139,7 @@ bool Game::swapTiles(int playerId, const std::vector<char>& letters) {
 
     Player& player = *players_[playerId];
     if (player.swapTiles(tileBag_, letters)) {
+        turnHistory_.push_back({player.getName(), "", 0, false, true});
         refillRack(player);
         nextTurn();
         return true;
@@ -127,7 +150,7 @@ bool Game::swapTiles(int playerId, const std::vector<char>& letters) {
 void Game::passTurn(int playerId) {
     if (state_ != State::PLAYING || playerId != currentPlayerId_) return;
     consecutivePasses_++;
-    turnHistory_.push_back({getPlayer(playerId)->getName(), "", 0, true});
+    turnHistory_.push_back({getPlayer(playerId)->getName(), "", 0, true, false});
     std::cout << getPlayer(playerId)->getName() << " đã bỏ lượt." << std::endl;
     nextTurn();
 }
@@ -232,6 +255,31 @@ void Game::endGame() {
     state_ = State::GAME_OVER;
     std::cout << "Game has ended." << std::endl;
 }
+
+int Game::getWinnerId() const {
+    if (players_.empty()) return -1;
+
+    int winnerId = -1;
+    int maxScore = -9999;
+
+    for (size_t i = 0; i < players_.size(); ++i) {
+        if (players_[i] && players_[i]->getScore() > maxScore) {
+            maxScore = players_[i]->getScore();
+            winnerId = i;
+        }
+    }
+
+    // Kiểm tra trường hợp hòa
+    int countMaxScore = 0;
+    for (const auto& player : players_) {
+        if (player && player->getScore() == maxScore) {
+            countMaxScore++;
+        }
+    }
+
+    return (countMaxScore > 1) ? -1 : winnerId;
+}
+
 Game::State Game::getState() const { return state_; } 
 const Board& Game::getBoard() const { return board_; }
 Player* Game::getPlayer(int id) const {
@@ -244,4 +292,8 @@ int Game::getCurrentPlayerId() const { return currentPlayerId_; }
 const TileBag& Game::getTileBag() const { return tileBag_; }
 const std::vector<TurnRecord>& Game::getTurnHistory() const {
     return turnHistory_;
+}
+
+const std::vector<Play>& Game::getSuggestions() const {
+    return currentSuggestions_;
 }

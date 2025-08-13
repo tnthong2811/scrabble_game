@@ -83,6 +83,22 @@ bool Player::swapTiles(TileBag& bag, const std::vector<char>& letters) {
     return true;
 }
 
+std::vector<char> Player::selectSwapTiles() const {
+    std::vector<char> toSwap;
+    std::string highValue = "QJXZK"; 
+    for (const auto& tile : rack_) {
+        if (toSwap.size() >= 3) break;  
+        char l = tile.getLetter();
+        if (highValue.find(l) != std::string::npos) {
+            toSwap.push_back(l);
+        }
+    }
+    if (toSwap.empty()) {
+        toSwap.push_back(rack_[0].getLetter());
+    }
+    return toSwap;
+}
+
 void Player::addScore(int points) { score_ += points; }
 int Player::getScore() const { return score_; }
 std::string Player::getName() const { return name_; }

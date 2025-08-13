@@ -31,6 +31,7 @@ bool GameUI::init() {
     
     fontNormal_ = TTF_OpenFont("assets/font/Pixel.ttf", 16);
     fontTile_ = TTF_OpenFont("assets/font/Pixel.ttf", 20);
+    fontHistory_ = TTF_OpenFont("assets/font/Pixel.ttf", 14);
     fontSmall_ = TTF_OpenFont("assets/font/Pixel.ttf", 11);
     fontBig_ = TTF_OpenFont("assets/font/Pixel.ttf", 36);
     fontTitle_ = TTF_OpenFont("assets/font/Pixel.ttf", 96);
@@ -54,10 +55,13 @@ void GameUI::defineLayout() {
     
     playerInfoRect_ = { sidebarRect_.x + sidebarPadding, sidebarRect_.y + 40, sidebarRect_.w - 2 * sidebarPadding, 80 };
     opponentInfoRect_ = { playerInfoRect_.x, playerInfoRect_.y + playerInfoRect_.h + panelSpacing, playerInfoRect_.w, 80 };
-    tileBagRect_ = { playerInfoRect_.x, opponentInfoRect_.y + opponentInfoRect_.h + panelSpacing, playerInfoRect_.w, 200 };
-    turnHistoryRect_ = { playerInfoRect_.x, tileBagRect_.y + tileBagRect_.h + panelSpacing, playerInfoRect_.w, 250 };
+    tileBagRect_ = { playerInfoRect_.x, opponentInfoRect_.y + opponentInfoRect_.h + panelSpacing, playerInfoRect_.w, 80 };
+    turnHistoryRect_ = { playerInfoRect_.x, tileBagRect_.y + tileBagRect_.h + panelSpacing, playerInfoRect_.w, 220 };
+    suggestionRect_ = { playerInfoRect_.x, turnHistoryRect_.y + turnHistoryRect_.h + panelSpacing, playerInfoRect_.w, 150 };
     playButtonRect_ = { SCREEN_WIDTH / 2 - 75, SCREEN_HEIGHT / 2 + 50, 150, 60 };
+    replayButtonRect_ = { SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 100, 200, 60 };
     swapButtonRect_ = { resetButtonRect_.x + resetButtonRect_.w + 15, resetButtonRect_.y, 90, 45 };
+    replayButtonRect_ = { SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 100, 200, 60 };
     confirmSwapButtonRect_ = buttonsRect_; 
 
     dynamicSwapButtonRect_ = swapButtonRect_;
@@ -66,6 +70,7 @@ void GameUI::defineLayout() {
     dynamicSkipButtonRect_ = skipButtonRect_;
     dynamicResetButtonRect_ = resetButtonRect_;
     dynamicPlayButtonRect_ = playButtonRect_;
+    dynamicReplayButtonRect_ = replayButtonRect_;
 }
 
 void GameUI::close() {
@@ -73,6 +78,9 @@ void GameUI::close() {
     TTF_CloseFont(fontSmall_);
     TTF_CloseFont(fontBig_);
     TTF_CloseFont(fontTitle_);
+    if (gameOverBackgroundTexture_) {
+        SDL_DestroyTexture(gameOverBackgroundTexture_);
+    }
     SDL_DestroyRenderer(renderer_);
     SDL_DestroyWindow(window_);
     TTF_Quit();
@@ -91,6 +99,23 @@ void GameUI::run() {
 }
 
 void GameUI::update() {
+    if (currentState_ != UIState::GAME_OVER && game_.getState() == Game::State::GAME_OVER) {
+        if (gameOverBackgroundTexture_) {
+            SDL_DestroyTexture(gameOverBackgroundTexture_);
+            gameOverBackgroundTexture_ = nullptr;
+        }
+        gameOverBackgroundTexture_ = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGBA8888, 
+                                                       SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH, SCREEN_HEIGHT);
+        SDL_SetRenderTarget(renderer_, gameOverBackgroundTexture_);
+        renderGame();
+        SDL_SetRenderTarget(renderer_, NULL);
+        currentState_ = UIState::GAME_OVER;
+    }
+
+    if (currentState_ != UIState::GAME_OVER && game_.getState() == Game::State::GAME_OVER) {
+        currentState_ = UIState::GAME_OVER;
+    }
+
     int mouseX, mouseY;
     SDL_GetMouseState(&mouseX, &mouseY);
 
@@ -105,6 +130,19 @@ void GameUI::update() {
             dynamicPlayButtonRect_.y = playButtonRect_.y - (dynamicPlayButtonRect_.h - playButtonRect_.h) / 2;
         } else {
             dynamicPlayButtonRect_ = playButtonRect_;
+        }
+    }
+
+    if (currentState_ == UIState::GAME_OVER) {
+        if (mouseX >= replayButtonRect_.x && mouseX < replayButtonRect_.x + replayButtonRect_.w &&
+            mouseY >= replayButtonRect_.y && mouseY < replayButtonRect_.y + replayButtonRect_.h) {
+                
+            dynamicReplayButtonRect_.w = replayButtonRect_.w * scale;
+            dynamicReplayButtonRect_.h = replayButtonRect_.h * scale;
+            dynamicReplayButtonRect_.x = replayButtonRect_.x - (dynamicReplayButtonRect_.w - replayButtonRect_.w) / 2;
+            dynamicReplayButtonRect_.y = replayButtonRect_.y - (dynamicReplayButtonRect_.h - replayButtonRect_.h) / 2;
+        } else {
+            dynamicReplayButtonRect_ = replayButtonRect_;
         }
     }
 
@@ -149,7 +187,6 @@ void GameUI::update() {
             dynamicSwapButtonRect_ = swapButtonRect_;
         }
         
-        // Thêm logic hover cho nút CONFIRM SWAP khi ở trạng thái chọn
         if (currentState_ == UIState::SELECTING_SWAP) {
             if (mouseX >= confirmSwapButtonRect_.x && mouseX < confirmSwapButtonRect_.x + confirmSwapButtonRect_.w &&
                 mouseY >= confirmSwapButtonRect_.y && mouseY < confirmSwapButtonRect_.y + confirmSwapButtonRect_.h) {
@@ -431,7 +468,6 @@ void GameUI::handleMenuEvents() {
 }
 
 void GameUI::renderMenu() {
-    // 1. Định nghĩa các màu sắc của cầu vồng
     const std::vector<SDL_Color> rainbowColors = {
         {255, 0, 0, 255},    // Đỏ
         {255, 165, 0, 255},  // Cam
@@ -442,41 +478,94 @@ void GameUI::renderMenu() {
         {238, 130, 238, 255} // Tím
     };
 
-    // 2. Logic vẽ tiêu đề "SCRABBLE" từng chữ một
     std::string title = "SCRABBLE";
     int totalWidth = 0;
     int charHeight = 0;
 
-    // Tính toán tổng chiều rộng của cả chuỗi để căn giữa
     for (char c : title) {
         int w;
         TTF_SizeText(fontTitle_, std::string(1, c).c_str(), &w, &charHeight);
         totalWidth += w;
     }
 
-    // Vị trí bắt đầu vẽ (căn giữa theo chiều ngang)
     int currentX = (SCREEN_WIDTH - totalWidth) / 2;
     int y = SCREEN_HEIGHT / 2 - 150;
 
-    // Lặp qua từng ký tự để vẽ
     for (size_t i = 0; i < title.length(); ++i) {
         std::string letter(1, title[i]);
-        // Chọn màu tương ứng, lặp lại nếu hết màu
         SDL_Color color = rainbowColors[i % rainbowColors.size()]; 
         
-        // Vẽ ký tự
         renderText(letter, currentX, y, fontTitle_, color);
-
-        // Cập nhật vị trí X cho ký tự tiếp theo
         int w;
         TTF_SizeText(fontTitle_, letter.c_str(), &w, nullptr);
         currentX += w;
     }
 
-    // 3. Vẽ nút "PLAY" (giữ nguyên)
     SDL_SetRenderDrawColor(renderer_, COLOR_BUTTON.r, COLOR_BUTTON.g, COLOR_BUTTON.b, 255);
     SDL_RenderFillRect(renderer_, &dynamicPlayButtonRect_); 
-    renderText("PLAY", dynamicPlayButtonRect_.x, dynamicPlayButtonRect_.y, dynamicPlayButtonRect_.w, dynamicPlayButtonRect_.h, fontNormal_, COLOR_TEXT_LIGHT);
+    renderText("PLAY", dynamicPlayButtonRect_.x, dynamicPlayButtonRect_.y, dynamicPlayButtonRect_.w, dynamicPlayButtonRect_.h, fontTile_, COLOR_TEXT_LIGHT);
+}
+
+void GameUI::renderGameOver() {
+    if (gameOverBackgroundTexture_) {
+        SDL_RenderCopy(renderer_, gameOverBackgroundTexture_, NULL, NULL);
+    }
+
+    SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 180);
+    SDL_Rect overlayRect = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
+    SDL_RenderFillRect(renderer_, &overlayRect);
+    SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_NONE);
+
+    int winnerId = game_.getWinnerId();
+    std::string message;
+    SDL_Color color;
+
+    if (winnerId == 0) {
+        message = "YOU WIN!";
+        color = {118, 255, 3, 255};
+    } else {
+        message = "GAME OVER";
+        color = {211, 47, 47, 255};
+    }
+
+    renderText(message, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT - 100, fontTitle_, color);
+
+    SDL_SetRenderDrawColor(renderer_, COLOR_BUTTON.r, COLOR_BUTTON.g, COLOR_BUTTON.b, 255);
+    SDL_RenderFillRect(renderer_, &dynamicReplayButtonRect_);
+    renderText("REPLAY", dynamicReplayButtonRect_.x, dynamicReplayButtonRect_.y, 
+               dynamicReplayButtonRect_.w, dynamicReplayButtonRect_.h, fontNormal_, COLOR_TEXT_LIGHT); // <-- Sửa ở đây
+}
+
+void GameUI::handleGameOverEvents() {
+    SDL_Event e;
+    while (SDL_PollEvent(&e) != 0) {
+        if (e.type == SDL_QUIT) {
+            running_ = false;
+        }
+
+        if (e.type == SDL_MOUSEBUTTONDOWN) {
+            int mouseX, mouseY;
+            SDL_GetMouseState(&mouseX, &mouseY);
+
+            // Kiểm tra nếu nhấn vào nút Replay
+            if (mouseX >= replayButtonRect_.x && mouseX < replayButtonRect_.x + replayButtonRect_.w &&
+                mouseY >= replayButtonRect_.y && mouseY < replayButtonRect_.y + replayButtonRect_.h) {
+                
+                // Bắt đầu lại game
+                game_.startNewGame(1);
+                
+                // Quay về trạng thái đang chơi
+                currentState_ = UIState::PLAYING;
+
+                // Hủy texture cũ để chuẩn bị cho lần game over tiếp theo
+                if (gameOverBackgroundTexture_) {
+                    SDL_DestroyTexture(gameOverBackgroundTexture_);
+                    gameOverBackgroundTexture_ = nullptr;
+                }
+            }
+        }
+    }
 }
 
 void GameUI::handleEvents() {
@@ -484,7 +573,9 @@ void GameUI::handleEvents() {
         handleMenuEvents();
     } else if (currentState_ == UIState::SELECTING_SWAP) {
         handleSwapSelectionEvents();
-    } else { // PLAYING hoặc GAME_OVER
+    } else if (currentState_ == UIState::GAME_OVER) {
+        handleGameOverEvents();
+    } else { 
         handleGameEvents();
     }
 }
@@ -495,10 +586,11 @@ void GameUI::render() {
 
     if (currentState_ == UIState::MAIN_MENU) {
         renderMenu();
-    } else { // PLAYING hoặc GAME_OVER
+    } else if (currentState_ == UIState::GAME_OVER) {
+        renderGameOver();
+    } else { 
         renderGame();
     }
-
     SDL_RenderPresent(renderer_);
 }
 
@@ -644,30 +736,27 @@ void GameUI::renderTileBagPanel(const SDL_Rect& rect) {
 void GameUI::renderHistoryPanel(const SDL_Rect& rect) {
     SDL_SetRenderDrawColor(renderer_, 40, 50, 60, 255);
     SDL_RenderFillRect(renderer_, &rect);
-    // Thay đổi tiêu đề cho phù hợp
-    renderText("Last Move", rect.x, rect.y + 10, rect.w, 20, fontNormal_, COLOR_TEXT_LIGHT);
-
+    renderText("Turn History", rect.x, rect.y + 10, rect.w, 20, fontNormal_, COLOR_TEXT_LIGHT);
     const auto& history = game_.getTurnHistory();
-
-    // 1. Kiểm tra xem đã có lượt đi nào trong lịch sử chưa
     if (history.empty()) {
-        return; // Nếu chưa có, không vẽ gì cả
+        return; 
     }
-
-    // 2. Lấy ra chỉ lượt đi cuối cùng
-    const auto& lastTurn = history.back();
-
-    // 3. Tạo chuỗi văn bản để hiển thị (logic giữ nguyên)
-    std::string text;
-    if (lastTurn.isPass) {
-        text = lastTurn.playerName + " passed.";
-    } else {
-        text = lastTurn.playerName + " played move '" + lastTurn.word + "' for " + std::to_string(lastTurn.score) + " pts.";
+    int movesToShow = std::min(4, (int)history.size());
+    int y_offset = 40; 
+    for (int i = 0; i < movesToShow; ++i) {
+        const auto& turn = history[history.size() - 1 - i];
+        std::string text;
+        if (turn.isPass) {
+            text = turn.playerName + " passed.";
+        } else if (turn.isSwap) { 
+            text = turn.playerName + " swapped tiles.";
+        }
+        else {
+            text = turn.playerName + " played '" + turn.word + "' for " + std::to_string(turn.score) + " pts.";
+        }
+        renderText(text, rect.x + 15, rect.y + y_offset, fontHistory_, COLOR_TEXT_LIGHT);
+        y_offset += 20;
     }
-
-    // 4. Vẽ văn bản của lượt đi cuối cùng đó
-    int y_offset = 40;
-    renderText(text, rect.x + 10, rect.y + y_offset, fontSmall_, COLOR_TEXT_LIGHT);
 }
 
 void GameUI::renderPlayerPanel(const Player* player, int playerId, const SDL_Rect& rect, bool isOpponent) {
@@ -692,6 +781,26 @@ void GameUI::renderPlayerPanel(const Player* player, int playerId, const SDL_Rec
     renderText(score, rect.x + 20, rect.y + 40, fontNormal_, textColor);
 }
 
+void GameUI::renderSuggestionPanel(const SDL_Rect& rect) {
+    SDL_SetRenderDrawColor(renderer_, 40, 50, 60, 255);
+    SDL_RenderFillRect(renderer_, &rect);
+    renderText("Suggestions", rect.x, rect.y + 10, rect.w, 20, fontNormal_, COLOR_TEXT_LIGHT);
+    const auto& suggestions = game_.getSuggestions();
+
+    if (suggestions.empty()) {
+        renderText("No suggestions available.", rect.x, rect.y + 40, rect.w, 20, fontHistory_, COLOR_TEXT_LIGHT);
+        return;
+    }
+
+    int y_offset = 40;
+    for (const auto& play : suggestions) {
+        if (y_offset > rect.h - 20) break; 
+        std::string text = play.getMove().getWord();
+        renderText(text, rect.x + 15, rect.y + y_offset, fontHistory_, COLOR_TEXT_LIGHT);
+        y_offset += 20;
+    }
+}
+
 void GameUI::renderSidebar() {
     // Vẽ nền chính của sidebar
     SDL_SetRenderDrawColor(renderer_, COLOR_SIDEBAR.r, COLOR_SIDEBAR.g, COLOR_SIDEBAR.b, 255);
@@ -704,6 +813,7 @@ void GameUI::renderSidebar() {
     renderPlayerPanel(ai_player, 1, opponentInfoRect_, true);
     renderTileBagPanel(tileBagRect_);
     renderHistoryPanel(turnHistoryRect_);
+    renderSuggestionPanel(suggestionRect_);
 }
 
 void GameUI::renderButtons() {

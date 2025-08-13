@@ -22,6 +22,7 @@ public:
     std::string findValidWord(const TrieDictionary& dictionary) const;
     // === Game Actions ===
     bool swapTiles(TileBag& bag, const std::vector<char>& letters);
+    std::vector<char> selectSwapTiles() const;
 
     // === Scoring & State ===
     void addScore(int points);

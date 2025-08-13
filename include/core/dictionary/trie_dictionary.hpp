@@ -28,4 +28,6 @@ private:
     void find_matches_recursive(TrieNode* node, std::string& current_word, const std::string& pattern, size_t pattern_index, std::vector<std::string>& results) const;
     void find_possible_words_recursive(TrieNode* node, std::string& current_word, std::unordered_map<char, int>& available_letters, std::vector<std::string>& results) const;
     void getAllWordsRecursive(TrieNode* node, std::string& current_word, std::vector<std::string>& results) const; // Hỗ trợ getAllWords
+    std::vector<std::string> find_possible_words_with_blank(const std::string& letters, int blankCount) const;
+    void find_possible_with_blank_recursive(TrieNode* node, std::string& current_word, std::unordered_map<char, int>& available_letters, int blanks, std::vector<std::string>& results) const;
 };

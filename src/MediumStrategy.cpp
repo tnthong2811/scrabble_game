@@ -14,7 +14,7 @@ std::vector<Move> MediumStrategy::generatePlays(const Board& board, const std::v
     std::vector<std::pair<int, int>> valid_positions = findValidPositions(board);
 
     // 2. Tạo các từ có thể có từ khay chữ (giới hạn độ dài cho cấp độ Medium)
-    const int MAX_WORD_LENGTH = 5;
+    const int MAX_WORD_LENGTH = 7;
     std::vector<std::string> potential_words = generatePotentialWords(rack, MAX_WORD_LENGTH);
     std::vector<std::string> valid_words;
     for (const auto& word : potential_words) {

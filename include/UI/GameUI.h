@@ -32,6 +32,7 @@ private:
     TTF_Font* fontNormal_ = nullptr;
     TTF_Font* fontTile_ = nullptr;
     TTF_Font* fontSmall_ = nullptr;
+    TTF_Font* fontHistory_ = nullptr;
     TTF_Font* fontBig_ = nullptr;
     TTF_Font* fontTitle_ = nullptr;
     Game& game_;
@@ -52,10 +53,14 @@ private:
     SDL_Rect opponentInfoRect_;
     SDL_Rect tileBagRect_;
     SDL_Rect turnHistoryRect_;
+    SDL_Rect suggestionRect_;
     SDL_Rect swapButtonRect_;
     SDL_Rect dynamicSwapButtonRect_;
     SDL_Rect confirmSwapButtonRect_;
     SDL_Rect dynamicConfirmSwapButtonRect_;
+    SDL_Rect replayButtonRect_;
+    SDL_Rect dynamicReplayButtonRect_;
+    SDL_Texture* gameOverBackgroundTexture_ = nullptr;
     
     bool isDragging_ = false;
     int draggedRackIndex_ = -1;
@@ -85,8 +90,11 @@ private:
     void renderPlayerPanel(const Player* player, int playerId, const SDL_Rect& rect, bool isOpponent);
     void renderHistoryPanel(const SDL_Rect& rect);
     void renderTileBagPanel(const SDL_Rect& rect);
+    void renderSuggestionPanel(const SDL_Rect& rect);
+    void handleGameOverEvents();
     void handleSwapSelectionEvents();
     void handleMenuEvents();
+    void renderGameOver();
     void handleGameEvents();
     void renderMenu();
     void renderGame();

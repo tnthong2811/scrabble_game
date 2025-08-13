@@ -161,3 +161,45 @@ void TrieDictionary::getAllWordsRecursive(TrieNode* node, std::string& current_w
         current_word.pop_back();
     }
 }
+
+std::vector<std::string> TrieDictionary::find_possible_words_with_blank(const std::string& letters, int blankCount) const {
+    std::unordered_map<char, int> letter_counts;
+    for (char c : letters) {
+        c = toupper(c);
+        if (isalpha(c)) letter_counts[c]++;
+    }
+    std::vector<std::string> results;
+    std::string current_word;
+    find_possible_with_blank_recursive(root.get(), current_word, letter_counts, blankCount, results);
+    return results;
+}
+
+void TrieDictionary::find_possible_with_blank_recursive(TrieNode* node, std::string& current_word, std::unordered_map<char, int>& available_letters, int blanks, std::vector<std::string>& results) const {
+    if (!node) return;
+    
+    if (node->is_end_of_word && !current_word.empty()) {
+        results.push_back(current_word);
+    }
+    
+    for (const auto& [ch, child] : node->children) {
+        bool usedBlank = false;
+        if (available_letters[ch] > 0) {
+            available_letters[ch]--;
+        } else if (blanks > 0) {
+            usedBlank = true;
+            blanks--;
+        } else continue;
+        
+        current_word.push_back(ch);
+        find_possible_with_blank_recursive(child.get(), current_word, available_letters, blanks, results);
+        current_word.pop_back();
+        
+        if (usedBlank) {
+            blanks++;
+        } else {
+            available_letters[ch]++;
+        }
+    }
+}
+
+
