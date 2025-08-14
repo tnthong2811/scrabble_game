@@ -1,20 +1,9 @@
 #include "core/Board.h"
 #include "core/Player.h"
-#include <set> // Dùng std::set để tự động loại bỏ các từ bị trùng lặp
+#include <set> 
 #include <algorithm>
 #include <cctype>
 
-// =================================================================================
-// === KHỐI LOGIC MỚI - TRÁI TIM CỦA VIỆC XÁC THỰC VÀ TÍNH ĐIỂM ====================
-// =================================================================================
-
-/**
- * @brief Phân tích một nước đi: kiểm tra tính hợp lệ, tìm tất cả các từ tạo thành và tính điểm tổng.
- * Hàm này KHÔNG làm thay đổi trạng thái của bàn cờ hiện tại.
- * @param move Nước đi cần kiểm tra.
- * @param dictionary Từ điển để xác thực các từ.
- * @return Một đối tượng MoveResult chứa kết quả phân tích.
- */
 int Board::calculateScoreForSingleWord(const Move& move, const std::string& word, int startRow, int startCol, bool isHorizontal, const Board& tempBoard) const {  
     int currentWordScore = 0;
     int wordMultiplier = 1;
@@ -142,13 +131,6 @@ void Board::executeMove(const Move& move) {
     }
 }
 
-/**
- * @brief Thực thi một nước đi lên bàn cờ thật. Chỉ gọi hàm này sau khi đã validate thành công.
- */
-// =================================================================================
-// === CÁC HÀM PHỤ TRỢ =============================================================
-// =================================================================================
-
 Board::Board() {
     grid_.resize(SIZE, std::vector<Cell>(SIZE));
     initializePremiumSquares();
@@ -163,9 +145,6 @@ void Board::reset() {
     initializePremiumSquares();
 }
 
-/**
- * @brief Lấy nguyên một từ (chuỗi chữ cái liên tục) tại một vị trí cho trước theo một hướng.
- */
 std::string Board::getWordAt(int row, int col, bool horizontal) const {
     if (!grid_[row][col].hasTile()) {
         return "";
@@ -191,7 +170,6 @@ std::string Board::getWordAt(int row, int col, bool horizontal) const {
     return word;
 }
 
-// Hàm này giờ là private, được gọi bởi executeMove
 bool Board::placeTile(int row, int col, Tile tile) {
     if (!isValidPosition(row, col) || hasTile(row, col)) return false;
     grid_[row][col].tile = tile;
@@ -208,8 +186,6 @@ void Board::markPremiumUsed(int row, int col) {
     }
 }
 
-// --- CÁC HÀM GETTER VÀ HÀM CŨ VẪN HỮU ÍCH ---
-// (Giữ lại các hàm như isEmpty, hasTile, getTileLetter, isValidPosition, ...)
 bool Board::isEmpty() const {
     for (int i = 0; i < SIZE; i++)
         for (int j = 0; j < SIZE; j++)
@@ -240,10 +216,7 @@ void Board::placeTileForAI(int row, int col, Tile tile) {
         grid_[row][col].tile = tile;
     }
 }
-/**
- * @brief Kiểm tra xem một ô có phải là "điểm neo" hay không.
- * Điểm neo là một ô trống và nằm ngay cạnh một ô đã có chữ.
- */
+
 bool Board::isAnchor(int row, int col) const {
     // Một ô là điểm neo nếu nó hợp lệ, trống, VÀ nằm cạnh một ô đã có chữ.
     if (!isValidPosition(row, col) || hasTile(row, col)) {
@@ -291,8 +264,6 @@ void Board::initializePremiumSquares() {
     grid_[SIZE / 2][SIZE / 2].type = CellType::CENTER;
 }
 
-// --- CÁC HÀM SERIALIZATION ---
-// (Giữ nguyên các hàm serialize và deserialize)
 void Board::serialize(std::ofstream& file) const {
     for (int i = 0; i < SIZE; ++i) {
         for (int j = 0; j < SIZE; ++j) {

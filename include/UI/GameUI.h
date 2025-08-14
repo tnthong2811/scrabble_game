@@ -24,6 +24,7 @@ public:
 private:
     enum class UIState {
         MAIN_MENU,
+        LOADING,
         PLAYING,
         SELECTING_SWAP,
         GAME_OVER
@@ -35,6 +36,7 @@ private:
     TTF_Font* fontTile_ = nullptr;
     TTF_Font* fontSmall_ = nullptr;
     TTF_Font* fontHistory_ = nullptr;
+    TTF_Font* fontIVL_ = nullptr;
     TTF_Font* fontBig_ = nullptr;
     TTF_Font* fontTitle_ = nullptr;
     TTF_Font* fontCoords_ = nullptr;
@@ -75,7 +77,10 @@ private:
     SDL_Rect difficultyButtonEasyRect_;
     SDL_Rect difficultyButtonMediumRect_;
     SDL_Rect difficultyButtonHardRect_;
-    AI::Difficulty selectedDifficulty_ = AI::Difficulty::MEDIUM;     
+    AI::Difficulty selectedDifficulty_ = AI::Difficulty::MEDIUM;   
+    bool isLoadingComplete_ = false; // Biến kiểm tra load xong
+    int loadingGameTime_ = 15; // Lưu tạm thời selectedGameTime_ khi load
+    AI::Difficulty loadingDifficulty_ = AI::Difficulty::EASY; // Lưu tạm thời selectedDifficulty_ khi load  
 
     bool isDragging_ = false;
     int draggedRackIndex_ = -1;
@@ -110,7 +115,9 @@ private:
     void renderHistoryPanel(const SDL_Rect& rect);
     void renderTileBagPanel(const SDL_Rect& rect);
     void renderSuggestionPanel(const SDL_Rect& rect);
+    void renderLoading();
     void handleGameOverEvents();
+    void handleLoadingEvents();
     void handleSwapSelectionEvents();
     void handleMenuEvents();
     void renderGameOver();

@@ -44,7 +44,6 @@ void MediumStrategy::generateMovesForAnchor(const Board& board, int r, int c,
     std::string prefix = "";
     int limit = 0;
     for (int i = c - 1; i >= 0 && board.hasTile(r, i); --i) {
-        // *** SỬA LỖI: Dùng getCell(r, i).tile thay vì getTile(r, i) ***
         prefix = board.getCell(r, i).tile.getLetter() + prefix;
         limit++;
     }
@@ -55,7 +54,6 @@ void MediumStrategy::generateMovesForAnchor(const Board& board, int r, int c,
     prefix = "";
     limit = 0;
     for (int i = r - 1; i >= 0 && board.hasTile(i, c); --i) {
-        // *** SỬA LỖI: Dùng getCell(i, c).tile thay vì getTile(i, c) ***
         prefix = board.getCell(i, c).tile.getLetter() + prefix;
         limit++;
     }

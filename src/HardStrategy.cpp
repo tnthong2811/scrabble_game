@@ -27,10 +27,17 @@ std::vector<Move> HardStrategy::generatePlays(const Board& board, const std::vec
         else rackCount[t.getLetter()]++;
     }
 
+    // Debug: In ra rack để kiểm tra
+    std::cout << "AI rack: ";
+    for (const auto& [letter, count] : rackCount) {
+        std::cout << letter << "(" << count << ") ";
+    }
+    std::cout << "Blanks: " << blanks << std::endl;
+
     if (board.isEmpty()) {
         auto words = dictionary_.find_possible_words_with_blank(rackToString(rack), blanks);
         for (const auto& word : words) {
-            if (word.length() > 1) {
+            if (word.length() > 1) { 
                 plays_set.insert(Move(word, 7, 7, Move::Direction::HORIZONTAL));
             }
         }
@@ -38,22 +45,53 @@ std::vector<Move> HardStrategy::generatePlays(const Board& board, const std::vec
     }
 
     auto anchors = findAnchorPoints(board);
+
     for (const auto& anchor : anchors) {
         int anchor_r = anchor.first;
         int anchor_c = anchor.second;
-        // Tìm các nước đi bắt đầu từ ô neo (không có phần bên trái/trên)
         go(anchor_r, anchor_c, true, board, rackCount, blanks, gaddag_.getRoot(), "", plays_set, anchor_r, anchor_c); // Ngang
         go(anchor_r, anchor_c, false, board, rackCount, blanks, gaddag_.getRoot(), "", plays_set, anchor_r, anchor_c); // Dọc
-        
-        // Tìm các nước đi mở rộng từ chữ có sẵn (có phần bên trái/trên)
         gen(anchor_r, anchor_c, true, board, rackCount, blanks, gaddag_.getRoot(), "", plays_set, anchor_r, anchor_c); // Ngang
         gen(anchor_r, anchor_c, false, board, rackCount, blanks, gaddag_.getRoot(), "", plays_set, anchor_r, anchor_c); // Dọc
+    }
+
+    if (plays_set.empty()) {
+        std::vector<char> tiles_to_swap = selectTilesToSwap(rackCount, blanks);
+        if (!tiles_to_swap.empty()) {
+            std::cout << "AI swaps tiles: ";
+            for (char c : tiles_to_swap) std::cout << c << " ";
+            std::cout << std::endl;
+            return {}; 
+        }
     }
 
     return std::vector<Move>(plays_set.begin(), plays_set.end());
 }
 
-// Hàm "Gen" - xây dựng phần bên TRÁI/TRÊN của từ (thêm param anchor_r, anchor_c)
+// Hàm chọn tiles để swap thông minh
+std::vector<char> HardStrategy::selectTilesToSwap(const std::unordered_map<char, int>& rackCount, int blanks) {
+    std::vector<char> tiles_to_swap;
+    // Ưu tiên swap chữ cái khó: Q, J, Z, K, X, Y
+    std::vector<char> hard_tiles = {'Q', 'J', 'Z', 'K', 'X', 'Y'};
+    for (char c : hard_tiles) {
+        if (rackCount.count(c) && rackCount.at(c) > 0) {
+            tiles_to_swap.push_back(c);
+            if (tiles_to_swap.size() >= 2) break; // Swap tối đa 2 tiles
+        }
+    }
+
+    if (tiles_to_swap.size() < 2) {
+        std::vector<char> vowels = {'A', 'E', 'I', 'O', 'U'};
+        for (const auto& [letter, count] : rackCount) {
+            if (count > 1 && std::find(vowels.begin(), vowels.end(), letter) == vowels.end() && tiles_to_swap.size() < 2) {
+                tiles_to_swap.push_back(letter);
+            }
+        }
+    }
+    return tiles_to_swap;
+}
+
+// Hàm "Gen" - xây dựng phần bên TRÁI/TRÊN của từ
 void HardStrategy::gen(int r, int c, bool isHorizontal, const Board& board,
                        std::unordered_map<char, int> rackCount, int blanks,
                        std::shared_ptr<Utils::Node> node, const std::string& word_part,
@@ -159,7 +197,7 @@ void HardStrategy::go(int r, int c, bool isHorizontal, const Board& board,
     }
 }
 
-// --- HÀM MỚI: Kiểm tra từ vuông góc --- (giữ nguyên)
+// --- HÀM MỚI: Kiểm tra từ vuông góc ---
 bool HardStrategy::crossCheck(int r, int c, char letter, bool isHorizontal, const Board& board) {
     std::string crossWord = getCrossWord(r, c, letter, isHorizontal, board);
     return crossWord.length() <= 1 || dictionary_.contains(crossWord);
@@ -201,7 +239,6 @@ std::string HardStrategy::rackToString(const std::vector<Tile>& rack) {
     for(const auto& t : rack) if(!t.isBlank()) s += t.getLetter();
     return s;
 }
-
 
 } // namespace Strategies
 } // namespace AI

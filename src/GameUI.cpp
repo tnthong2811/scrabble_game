@@ -34,6 +34,7 @@ bool GameUI::init() {
     fontHistory_ = TTF_OpenFont("assets/font/Pixel.ttf", 14);
     fontSmall_ = TTF_OpenFont("assets/font/Pixel.ttf", 11);
     fontBig_ = TTF_OpenFont("assets/font/Pixel.ttf", 36);
+    fontIVL_ = TTF_OpenFont("assets/font/Pixel.ttf", 50);
     fontTitle_ = TTF_OpenFont("assets/font/Pixel.ttf", 96);
     fontCoords_ = TTF_OpenFont("assets/font/Pixel.ttf", 12);
 
@@ -169,6 +170,7 @@ void GameUI::run() {
     const double MS_PER_UPDATE = 16.666; // ~60 updates per second
     double previousTime = SDL_GetTicks();
     double lag = 0.0;
+    Uint32 loadingStartTime = 0; // Thời điểm bắt đầu trạng thái LOADING
 
     while (running_) {
         double currentTime = SDL_GetTicks();
@@ -176,19 +178,39 @@ void GameUI::run() {
         previousTime = currentTime;
         lag += elapsed;
 
-        // 1. Xử lý tất cả input của người dùng
+        // Xử lý tất cả input của người dùng
         handleEvents();
 
-        // 2. Cập nhật logic game theo các bước thời gian cố định
+        // Cập nhật logic game theo các bước thời gian cố định
         while (lag >= MS_PER_UPDATE) {
-            update();     // Cập nhật UI (hover,...)
-            updateGame(); // Cập nhật logic AI
-            game_.updateTimers(); // Cập nhật logic thời gian
+            update();
+            if (currentState_ == UIState::LOADING) {
+                if (loadingStartTime == 0) {
+                    loadingStartTime = SDL_GetTicks();
+                    std::cout << "Entered LOADING state at: " << loadingStartTime << " ms" << std::endl;
+                    render();
+                }
+
+                if (!isLoadingComplete_) {
+                    game_.startNewGame(1, loadingGameTime_, loadingDifficulty_);
+                    isLoadingComplete_ = true;
+                    std::cout << "Game initialized at: " << SDL_GetTicks() << " ms" << std::endl;
+                }
+
+                if (SDL_GetTicks() - loadingStartTime >= 0) {
+                    currentState_ = UIState::PLAYING;
+                    loadingStartTime = 0;
+                    std::cout << "Switching to PLAYING state at: " << SDL_GetTicks() << " ms" << std::endl;
+                }
+            } else if (currentState_ == UIState::PLAYING) {
+                updateGame();
+                game_.updateTimers();
+            }
             lag -= MS_PER_UPDATE;
         }
         
-        // 3. Vẽ mọi thứ ra màn hình
-        render(); 
+        // Vẽ mọi thứ ra màn hình
+        render();
     }
 }
 
@@ -474,22 +496,34 @@ void GameUI::renderGame() {
     renderButtons();
     renderRack();
 
-    // Vẽ tile đang được kéo (luôn vẽ sau cùng để nó nổi lên trên)
     if (isDragging_) {
         int mouseX, mouseY;
-        SDL_GetMouseState(&mouseX, &mouseY); // Lấy vị trí chuột mới nhất
+        SDL_GetMouseState(&mouseX, &mouseY);
         renderTile(draggedTile_, mouseX - dragOffset_.x, mouseY - dragOffset_.y);
     }
 
     if (invalidMoveTimestamp_ != 0) {
         Uint32 currentTime = SDL_GetTicks();
-        // Nếu chưa đủ 2 giây (2000 mili giây)
         if (currentTime - invalidMoveTimestamp_ < 2000) {
-            // Vẽ chữ "INVALID" màu đỏ giữa bàn cờ
             SDL_Color red = {255, 0, 0, 255};
-            renderText("INVALID MOVE", boardRect_.x, boardRect_.y, boardRect_.w, boardRect_.h, fontBig_, red);
+            SDL_Color black = {0, 0, 0, 255}; // Màu đen cho viền
+            // Tính vị trí trung tâm
+            int x = boardRect_.x;
+            int y = boardRect_.y;
+            int w = boardRect_.w;
+            int h = boardRect_.h;
+            // Vẽ văn bản màu đen tại các vị trí lệch để tạo viền
+            renderText("INVALID MOVE", x - 1, y - 1, w, h, fontIVL_, black); // Trái trên
+            renderText("INVALID MOVE", x + 1, y - 1, w, h, fontIVL_, black); // Phải trên
+            renderText("INVALID MOVE", x - 1, y + 1, w, h, fontIVL_, black); // Trái dưới
+            renderText("INVALID MOVE", x + 1, y + 1, w, h, fontIVL_, black); // Phải dưới
+            renderText("INVALID MOVE", x - 1, y, w, h, fontIVL_, black);     // Trái
+            renderText("INVALID MOVE", x + 1, y, w, h, fontIVL_, black);     // Phải
+            renderText("INVALID MOVE", x, y - 1, w, h, fontIVL_, black);     // Trên
+            renderText("INVALID MOVE", x, y + 1, w, h, fontIVL_, black);     // Dưới
+            // Vẽ văn bản đỏ chính
+            renderText("INVALID MOVE", x, y, w, h, fontIVL_, red);
         } else {
-            // Nếu đã quá 2 giây, reset bộ đếm giờ
             invalidMoveTimestamp_ = 0;
         }
     }
@@ -610,10 +644,10 @@ void GameUI::handleMenuEvents() {
             // Xử lý click nút Play
             else if (mouseX >= playButtonRect_.x && mouseX < playButtonRect_.x + playButtonRect_.w &&
                      mouseY >= playButtonRect_.y && mouseY < playButtonRect_.y + playButtonRect_.h) {
-                
-                // *** BẮT ĐẦU GAME VỚI CẢ THỜI GIAN VÀ ĐỘ KHÓ ĐÃ CHỌN ***
-                game_.startNewGame(1, selectedGameTime_, selectedDifficulty_);
-                currentState_ = UIState::PLAYING;
+                loadingGameTime_ = selectedGameTime_;
+                loadingDifficulty_ = selectedDifficulty_;
+                isLoadingComplete_ = false;
+                currentState_ = UIState::LOADING;
             }
         }
     }
@@ -754,7 +788,9 @@ void GameUI::handleEvents() {
         handleSwapSelectionEvents();
     } else if (currentState_ == UIState::GAME_OVER) {
         handleGameOverEvents();
-    } else { 
+    } else if (currentState_ == UIState::LOADING) {
+        handleLoadingEvents();
+    } else {
         handleGameEvents();
     }
 }
@@ -767,7 +803,9 @@ void GameUI::render() {
         renderMenu();
     } else if (currentState_ == UIState::GAME_OVER) {
         renderGameOver();
-    } else { 
+    } else if (currentState_ == UIState::LOADING) {
+        renderLoading();
+    } else {
         renderGame();
     }
     SDL_RenderPresent(renderer_);
@@ -1117,4 +1155,22 @@ void GameUI::renderTimerPanel(const SDL_Rect& rect) {
     // Vẽ thời gian
     renderText(totalTimeStr, rect.x + 15, rect.y + 10, fontNormal_, COLOR_TEXT_LIGHT);
     renderText(turnTimeStr, rect.x + 15, rect.y + 35, fontNormal_, COLOR_TEXT_LIGHT);
+}
+
+void GameUI::handleLoadingEvents() {
+    SDL_Event e;
+    while (SDL_PollEvent(&e) != 0) {
+        if (e.type == SDL_QUIT) {
+            running_ = false;
+        }
+    }
+}
+
+void GameUI::renderLoading() {
+    std::cout << "Rendering LOADING screen..." << std::endl;
+    SDL_SetRenderDrawColor(renderer_, COLOR_BACKGROUND.r, COLOR_BACKGROUND.g, COLOR_BACKGROUND.b, 255);
+    SDL_RenderClear(renderer_);
+
+    SDL_Color loadingColor = {255, 255, 255, 255}; 
+    renderText("LOADING...", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, fontTitle_, loadingColor);
 }
