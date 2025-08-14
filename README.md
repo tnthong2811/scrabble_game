@@ -1,7 +1,10 @@
-# 🎮 Game Scrabble với AI thông minh
+# 🎮 Game Scrabble với AI thông minh 🎯
 
-Một phiên bản game Scrabble được xây dựng bằng C++ và thư viện đồ họa SDL2, đi kèm với 3 cấp độ AI (Easy, Medium, Hard) để thử thách người chơi.
-
+![Contributors](https://img.shields.io/github/contributors/tnthong2811/scrabble_game)
+![Commits](https://img.shields.io/github/commit-activity/m/tnthong2811/scrabble_game)
+![License](https://img.shields.io/github/license/tnthong2811/scrabble_game)
+![Languages](https://img.shields.io/github/languages/count/tnthong2811/scrabble_game)
+![Top Language](https://img.shields.io/github/languages/top/tnthong2811/scrabble_game)
 
 
 ---
@@ -89,7 +92,6 @@ build\game.exe
 ## 📜 Giấy phép
 
 Project này được cấp phép theo Giấy phép MIT. Xem file `LICENSE` để biết thêm chi tiết.
-*(Bạn có thể tạo một file mới tên là `LICENSE` và dán nội dung giấy phép MIT vào)*
 
 ---
 
