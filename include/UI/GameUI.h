@@ -78,9 +78,9 @@ private:
     SDL_Rect difficultyButtonMediumRect_;
     SDL_Rect difficultyButtonHardRect_;
     AI::Difficulty selectedDifficulty_ = AI::Difficulty::MEDIUM;   
-    bool isLoadingComplete_ = false; // Biến kiểm tra load xong
-    int loadingGameTime_ = 15; // Lưu tạm thời selectedGameTime_ khi load
-    AI::Difficulty loadingDifficulty_ = AI::Difficulty::EASY; // Lưu tạm thời selectedDifficulty_ khi load  
+    bool isLoadingComplete_ = false;
+    int loadingGameTime_ = 15; 
+    AI::Difficulty loadingDifficulty_ = AI::Difficulty::EASY; 
 
     bool isDragging_ = false;
     int draggedRackIndex_ = -1;

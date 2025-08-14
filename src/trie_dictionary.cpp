@@ -6,7 +6,6 @@
 #include <string>
 #include <unordered_map>
 
-// Sửa: Dùng TrieNode trực tiếp
 TrieDictionary::TrieDictionary() : root(std::make_unique<TrieNode>()) {}
 
 bool TrieDictionary::load(const std::string& filePath) {
@@ -32,11 +31,9 @@ bool TrieDictionary::load(const std::string& filePath) {
 }
 
 void TrieDictionary::insert_word(const std::string& word) {
-    // Sửa: Dùng TrieNode*
     TrieNode* current = root.get();
     for (char c : word) {
         if (current->children.find(c) == current->children.end()) {
-            // Sửa: Dùng TrieNode
             current->children[c] = std::make_unique<TrieNode>();
         }
         current = current->children[c].get();
@@ -50,9 +47,7 @@ void TrieDictionary::add_word(const std::string& word) {
     insert_word(normalized);
 }
 
-// Sửa: Dùng TrieNode*
 TrieNode* TrieDictionary::getNode(const std::string& word) const {
-    // Sửa: Dùng TrieNode*
     TrieNode* current = root.get();
     for (char c : word) {
         c = std::toupper(c);
@@ -72,7 +67,6 @@ bool TrieDictionary::isPrefix(const std::string& prefix) const {
 
 bool TrieDictionary::contains(const std::string& word) const {
     if (word.empty()) return false;
-    // Sửa: Dùng TrieNode*
     TrieNode* node = getNode(word);
     return node && node->is_end_of_word;
 }
@@ -88,7 +82,6 @@ std::vector<std::string> TrieDictionary::find_matches(const std::string& pattern
 }
 
 void TrieDictionary::find_matches_recursive(
-    // Sửa: Dùng TrieNode*
     TrieNode* node,
     std::string& current_word,
     const std::string& pattern,
@@ -143,7 +136,6 @@ std::vector<std::string> TrieDictionary::find_possible_words(const std::string& 
 }
 
 void TrieDictionary::find_possible_words_recursive(
-    // Sửa: Dùng TrieNode*
     TrieNode* node,
     std::string& current_word,
     std::unordered_map<char, int>& available_letters,
@@ -174,7 +166,6 @@ std::vector<std::string> TrieDictionary::getAllWords() const {
 }
 
 void TrieDictionary::getAllWordsRecursive(
-    // Sửa: Dùng TrieNode*
     TrieNode* node, 
     std::string& current_word, 
     std::vector<std::string>& results) const {
@@ -202,7 +193,6 @@ std::vector<std::string> TrieDictionary::find_possible_words_with_blank(const st
 }
 
 void TrieDictionary::find_possible_with_blank_recursive(
-    // Sửa: Dùng TrieNode*
     TrieNode* node, 
     std::string& current_word, 
     std::unordered_map<char, int>& available_letters, 

@@ -1,4 +1,3 @@
-// include/Core/dictionary/trie_dictionary.hpp
 #pragma once
 #include <string>
 #include <vector>

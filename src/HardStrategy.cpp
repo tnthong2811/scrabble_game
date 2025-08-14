@@ -217,7 +217,6 @@ std::string HardStrategy::getCrossWord(int r, int c, char letter, bool isHorizon
     }
 }
 
-// ... các hàm findAnchorPoints và rackToString giữ nguyên ...
 std::vector<std::pair<int, int>> HardStrategy::findAnchorPoints(const Board& board) {
     std::vector<std::pair<int, int>> anchors;
     if (board.isEmpty()) {

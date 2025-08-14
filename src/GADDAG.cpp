@@ -1,7 +1,7 @@
 #include "AI/Utils/GADDAG.h"
 #include <algorithm>
 #include <string>
-#include <stack>  // Để iterative deserialize
+#include <stack>  
 
 namespace AI {
 namespace Utils {
@@ -17,11 +17,10 @@ void GADDAG::buildFromDictionary(const TrieDictionary& dictionary) {
 }
 
 void GADDAG::addWord(const std::string& word) {
-    // FIX: Sử dụng rev(prefix) > suffix thay vì rev(suffix) > suffix
     for (size_t i = 1; i <= word.length(); ++i) {
         std::string prefix = word.substr(0, i);
         std::string rev_prefix(prefix.rbegin(), prefix.rend());
-        std::string suffix = (i < word.length()) ? word.substr(i) : "";  // Suffix empty nếu i == length
+        std::string suffix = (i < word.length()) ? word.substr(i) : "";  
         std::string transformed = rev_prefix + ">" + suffix;
         insertWord(transformed);
     }
@@ -74,7 +73,6 @@ void GADDAG::serializeNode(std::ostream& out, const std::shared_ptr<Node>& node)
     }
 }
 
-// FIX: Làm iterative để tránh recursion slow/stack overflow
 std::shared_ptr<Node> GADDAG::deserializeNode(std::istream& in) {
     struct StackFrame {
         std::shared_ptr<Node> node;

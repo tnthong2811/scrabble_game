@@ -9,7 +9,6 @@ namespace Strategies {
 
 EasyStrategy::EasyStrategy(const TrieDictionary& dictionary) : dictionary_(dictionary) {}
 
-// --- THUẬT TOÁN ĐÃ ĐƯỢC CẢI TIẾN ---
 std::vector<Move> EasyStrategy::generatePlays(const Board& board, const std::vector<Tile>& rack) {
     std::vector<Move> potential_plays;
     
@@ -42,10 +41,9 @@ std::vector<Move> EasyStrategy::generatePlays(const Board& board, const std::vec
                 Move move(word, anchor.first, anchor.second, 
                           is_horizontal ? Move::Direction::HORIZONTAL : Move::Direction::VERTICAL);
                 
-                // Trả về một danh sách nhỏ các nước đi tiềm năng để ScrabbleAI đánh giá
-                // Điều này giúp AI Easy đôi khi vẫn có thể chọn nước đi tốt hơn một chút
+                // Trả về danh sách các nước đi tiềm năng
                 potential_plays.push_back(move);
-                if (potential_plays.size() >= 10) { // Giới hạn số lượng gợi ý để không quá chậm
+                if (potential_plays.size() >= 10) { // Giới hạn số lượng gợi ý 
                     return potential_plays;
                 }
             }
@@ -55,7 +53,6 @@ std::vector<Move> EasyStrategy::generatePlays(const Board& board, const std::vec
     return potential_plays;
 }
 
-// Hàm này tìm các ô trống nằm cạnh một chữ cái đã có (hoặc ô trung tâm)
 std::vector<std::pair<int, int>> EasyStrategy::findAnchorPoints(const Board& board) {
     std::vector<std::pair<int, int>> anchors;
     if (board.isEmpty()) {

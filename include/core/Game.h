@@ -26,7 +26,6 @@ public:
     void endGame();
     const std::vector<Play>& getSuggestions() const;
     const std::vector<TurnRecord>& getTurnHistory() const;
-    // *** SỬA LỖI: Cập nhật chữ ký hàm này để khớp với GameUI và Game.cpp ***
     bool playWord(int playerId, const std::string& wordFromRack, const std::string& fullWord, int row, int col, bool horizontal);
     
     bool swapTiles(int playerId, const std::vector<char>& letters);

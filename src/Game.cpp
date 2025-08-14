@@ -168,7 +168,13 @@ void Game::refillRack(Player& player) {
 }
 
 bool Game::checkGameEnd() const {
-    // Điều kiện 1: Túi hết chữ VÀ một người chơi hết chữ trên tay
+    // Điều kiện 1: Kiểm tra thời gian ***
+    if (totalGameTimeRemaining_ == 0) {
+        std::cout << "Điều kiện kết thúc: Hết giờ chơi." << std::endl;
+        return true;
+    }
+
+    // Điều kiện 2: Túi hết chữ VÀ một người chơi hết chữ trên tay
     if (tileBag_.isEmpty()) {
         for (const auto& player : players_) {
             if (player && player->getRack().empty()) {
@@ -177,7 +183,7 @@ bool Game::checkGameEnd() const {
             }
         }
     }
-    // Điều kiện 2: Tất cả người chơi bỏ lượt 2 vòng liên tiếp
+    // Điều kiện 3: Tất cả người chơi bỏ lượt 2 vòng liên tiếp
     if (consecutivePasses_ >= static_cast<int>(players_.size() * 2)) {
         std::cout << "Điều kiện kết thúc: Tất cả người chơi đã bỏ lượt 2 vòng." << std::endl;
         return true;
@@ -189,7 +195,6 @@ void Game::calculateFinalScores() {
     int bonusPoints = 0;
     Player* finisher = nullptr;
 
-    // Trừ điểm của những người chơi còn chữ
     for (auto& player : players_) {
         if (!player) continue;
         int penalty = 0;
@@ -197,15 +202,13 @@ void Game::calculateFinalScores() {
             for (const Tile& tile : player->getRack()) {
                 penalty += tile.getValue();
             }
-            player->addScore(-penalty); // Trừ điểm từ chính người chơi đó
-            bonusPoints += penalty;     // Cộng dồn điểm phạt để thưởng cho người về nhất
+            player->addScore(-penalty);
+            bonusPoints += penalty;    
         } else {
-            // Tìm người đã hết chữ (nếu có)
             finisher = player.get();
         }
     }
 
-    // Cộng điểm thưởng cho người hết chữ đầu tiên (nếu có)
     if (finisher) {
         finisher->addScore(bonusPoints);
     }
@@ -275,7 +278,6 @@ int Game::getWinnerId() const {
         }
     }
 
-    // Kiểm tra trường hợp hòa
     int countMaxScore = 0;
     for (const auto& player : players_) {
         if (player && player->getScore() == maxScore) {
@@ -290,9 +292,9 @@ Game::State Game::getState() const { return state_; }
 const Board& Game::getBoard() const { return board_; }
 Player* Game::getPlayer(int id) const {
     if (id >= 0 && id < static_cast<int>(players_.size())) {
-        return players_[id].get(); // .get() trả về con trỏ thô từ unique_ptr
+        return players_[id].get(); 
     }
-    return nullptr; // Trả về nullptr nếu id không hợp lệ
+    return nullptr; 
 }
 int Game::getCurrentPlayerId() const { return currentPlayerId_; }
 const TileBag& Game::getTileBag() const { return tileBag_; }
@@ -323,11 +325,6 @@ void Game::updateTimers() {
         currentTurnTimeRemaining_ = 0;
     }
 
-    if (totalGameTimeRemaining_ == 0) {
-        std::cout << "Hết giờ! Trò chơi kết thúc." << std::endl;
-        endGame();
-        return;
-    }
     if (currentTurnTimeRemaining_ == 0) {
         std::cout << getPlayer(currentPlayerId_)->getName() << " hết giờ! Tự động bỏ lượt." << std::endl;
         passTurn(currentPlayerId_);

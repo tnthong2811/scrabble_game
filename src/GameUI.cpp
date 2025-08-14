@@ -59,12 +59,12 @@ void GameUI::defineLayout() {
     int startY = (SCREEN_HEIGHT - IMAGE_PANEL_SIZE) / 2;
     if (startY < 0) startY = 0;
 
-    // 3. Đặt vị trí cho panel ảnh (cách lề trái một khoảng cố định để dịch sang trái)
+    // 3. Đặt vị trí cho panel ảnh 
     int imageStartX = 50; 
     imagePanelRect_ = { imageStartX, startY, IMAGE_PANEL_SIZE, IMAGE_PANEL_SIZE };
 
     // 4. Đặt panel tùy chọn ngay bên cạnh panel ảnh
-    int optionsStartX = imageStartX + IMAGE_PANEL_SIZE + 50; // Thêm khoảng cách giữa 2 panel
+    int optionsStartX = imageStartX + IMAGE_PANEL_SIZE + 50; // khoảng cách giữa 2 panel
     optionsPanelRect_ = { optionsStartX, startY, OPTIONS_PANEL_WIDTH, IMAGE_PANEL_SIZE };
 
     // Bố cục các nút bên trong panel tùy chọn
@@ -74,12 +74,12 @@ void GameUI::defineLayout() {
     int buttonSpacingMenu = 20;
     int groupSpacing = 160; // Khoảng cách giữa các nhóm tùy chọn
 
-    // Vị trí các nút chọn độ khó (đẩy lên cao)
+    // Vị trí các nút chọn độ khó 
     int difficultyButtonsTopY = optionsPanelRect_.y + 60;
     difficultyButtonEasyRect_ = { optionsCenterX - buttonWidth / 2, difficultyButtonsTopY, buttonWidth, menuButtonHeight };
     difficultyButtonMediumRect_ = { optionsCenterX - buttonWidth / 2, difficultyButtonEasyRect_.y + menuButtonHeight + buttonSpacingMenu, buttonWidth, menuButtonHeight };
     difficultyButtonHardRect_ = { optionsCenterX - buttonWidth / 2, difficultyButtonMediumRect_.y + menuButtonHeight + buttonSpacingMenu, buttonWidth, menuButtonHeight };
-    // Vị trí các nút chọn thời gian (đặt bên dưới nhóm độ khó)
+    // Vị trí các nút chọn thời gian 
     int timeButtonsTopY = difficultyButtonMediumRect_.y + menuButtonHeight + groupSpacing;
     timeButton15Rect_ = { optionsCenterX - buttonWidth / 2, timeButtonsTopY, buttonWidth, menuButtonHeight };
     timeButton30Rect_ = { optionsCenterX - buttonWidth / 2, timeButton15Rect_.y + menuButtonHeight + buttonSpacingMenu, buttonWidth, menuButtonHeight };
@@ -93,7 +93,6 @@ void GameUI::defineLayout() {
     // 2. Dịch chuyển bàn cờ vào trong để có không gian
     boardRect_ = { BOARD_X + COORDS_GUTTER, BOARD_Y + COORDS_GUTTER, BOARD_SIZE_PX, BOARD_SIZE_PX };
     
-    // --- SỬA LỖI CĂN CHỈNH ---
     // 3. Tính toán chiều rộng và vị trí của các nút
     const int submitWidth = 130, skipWidth = 80, resetWidth = 90, swapWidth = 90, buttonSpacing = 15;
     const int inGameButtonHeight = 45;
@@ -110,7 +109,7 @@ void GameUI::defineLayout() {
     resetButtonRect_ = { skipButtonRect_.x + skipButtonRect_.w + buttonSpacing, skipButtonRect_.y, resetWidth, inGameButtonHeight };
     swapButtonRect_ = { resetButtonRect_.x + resetButtonRect_.w + buttonSpacing, resetButtonRect_.y, swapWidth, inGameButtonHeight };
 
-    // --- Phần còn lại của layout ---
+    // -- layout ---
     confirmSwapButtonRect_ = buttonsRect_; 
     sidebarRect_ = { BOARD_AREA_WIDTH, 0, SCREEN_WIDTH - BOARD_AREA_WIDTH, SCREEN_HEIGHT };
     
@@ -137,7 +136,7 @@ void GameUI::defineLayout() {
     replayButtonRect_ = { gameOverButtonsStartX, gameOverButtonsStartY, gameOverButtonWidth, gameOverButtonHeight };
     mainMenuButtonRect_ = { replayButtonRect_.x + gameOverButtonWidth + gameOverButtonSpacing, gameOverButtonsStartY, gameOverButtonWidth, gameOverButtonHeight };
 
-    // --- Phần dynamic rects ---
+    // --- dynamic rects ---
     dynamicMainMenuButtonRect_ = mainMenuButtonRect_;
     dynamicSwapButtonRect_ = swapButtonRect_;
     dynamicConfirmSwapButtonRect_ = confirmSwapButtonRect_;
@@ -167,10 +166,10 @@ void GameUI::close() {
 void GameUI::run() {
     running_ = true;
 
-    const double MS_PER_UPDATE = 8.333; // ~60 updates per second
+    const double MS_PER_UPDATE = 8.333; // ~60 
     double previousTime = SDL_GetTicks();
     double lag = 0.0;
-    Uint32 loadingStartTime = 0; // Thời điểm bắt đầu trạng thái LOADING
+    Uint32 loadingStartTime = 0; 
 
     while (running_) {
         double currentTime = SDL_GetTicks();
@@ -209,7 +208,6 @@ void GameUI::run() {
             lag -= MS_PER_UPDATE;
         }
         
-        // Vẽ mọi thứ ra màn hình
         render();
     }
 }
@@ -507,13 +505,12 @@ void GameUI::renderGame() {
     renderRack();
 
     if (isDragging_) {
-        // Vẽ bóng mờ
         SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 100); // Bóng đen mờ
+        SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 100); 
         SDL_Rect shadowRect = {
-            mousePos_.x - dragOffset_.x + 3, // Lệch 3px để tạo bóng
+            mousePos_.x - dragOffset_.x + 3,
             mousePos_.y - dragOffset_.y + 3,
-            static_cast<int>(TILE_SIZE * 1.1f), // Phóng to 1.1x
+            static_cast<int>(TILE_SIZE * 1.1f), 
             static_cast<int>(TILE_SIZE * 1.1f)
         };
         SDL_RenderFillRect(renderer_, &shadowRect);
@@ -523,7 +520,7 @@ void GameUI::renderGame() {
         SDL_Rect tileRect = {
             mousePos_.x - dragOffset_.x,
             mousePos_.y - dragOffset_.y,
-            static_cast<int>(TILE_SIZE * 1.1f), // Phóng to 1.1x
+            static_cast<int>(TILE_SIZE * 1.1f), 
             static_cast<int>(TILE_SIZE * 1.1f)
         };
         SDL_SetRenderDrawColor(renderer_, COLOR_TILE.r, COLOR_TILE.g, COLOR_TILE.b, 255);
@@ -545,19 +542,28 @@ void GameUI::renderGame() {
         Uint32 currentTime = SDL_GetTicks();
         if (currentTime - invalidMoveTimestamp_ < 2000) {
             SDL_Color red = {255, 0, 0, 255};
-            SDL_Color black = {0, 0, 0, 255};
             int x = boardRect_.x;
             int y = boardRect_.y;
             int w = boardRect_.w;
             int h = boardRect_.h;
-            renderText("INVALID MOVE", x - 1, y - 1, w, h, fontIVL_, black);
-            renderText("INVALID MOVE", x + 1, y - 1, w, h, fontIVL_, black);
-            renderText("INVALID MOVE", x - 1, y + 1, w, h, fontIVL_, black);
-            renderText("INVALID MOVE", x + 1, y + 1, w, h, fontIVL_, black);
-            renderText("INVALID MOVE", x - 1, y, w, h, fontIVL_, black);
-            renderText("INVALID MOVE", x + 1, y, w, h, fontIVL_, black);
-            renderText("INVALID MOVE", x, y - 1, w, h, fontIVL_, black);
-            renderText("INVALID MOVE", x, y + 1, w, h, fontIVL_, black);
+
+            int textW, textH;
+            TTF_SizeText(fontIVL_, "INVALID MOVE", &textW, &textH);
+            int padding = 10;
+            SDL_Rect backgroundRect = {
+                x + (w - textW - padding * 2) / 2, 
+                y + (h - textH - padding * 2) / 2, 
+                textW + padding * 2,              
+                textH + padding * 2               
+            };
+
+            // Vẽ nền đen với độ mờ
+            SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255); 
+            SDL_RenderFillRect(renderer_, &backgroundRect);
+            SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_NONE);
+
+            // Vẽ chữ INVALID MOVE
             renderText("INVALID MOVE", x, y, w, h, fontIVL_, red);
         } else {
             invalidMoveTimestamp_ = 0;
@@ -606,8 +612,6 @@ void GameUI::handleSwapSelectionEvents() {
                 continue;
             }
 
-            // --- SỬA LỖI: Đồng bộ hóa logic tính toán vị trí tile ---
-            // Sao chép công thức từ hàm renderRack()
             const int RACK_CAPACITY = 7;
             const int TILE_SPACING = 8;
             int totalTileWidth = RACK_CAPACITY * TILE_SIZE + (RACK_CAPACITY - 1) * TILE_SPACING;
@@ -617,7 +621,6 @@ void GameUI::handleSwapSelectionEvents() {
             // Xử lý click chọn/bỏ chọn tile trên khay
             const auto& rack = player->getRack();
             for (size_t i = 0; i < rack.size(); ++i) {
-                // Tạo hitbox với vị trí đã được đồng bộ
                 SDL_Rect tileRect = { startX + (int)i * (TILE_SIZE + TILE_SPACING), startY, TILE_SIZE, TILE_SIZE };
 
                 if (mouseX >= tileRect.x && mouseX < tileRect.x + tileRect.w &&
@@ -625,10 +628,8 @@ void GameUI::handleSwapSelectionEvents() {
                     
                     auto it = std::find(tilesToSwapIndices_.begin(), tilesToSwapIndices_.end(), i);
                     if (it != tilesToSwapIndices_.end()) {
-                        // Nếu đã chọn, bỏ chọn
                         tilesToSwapIndices_.erase(it);
                     } else {
-                        // Nếu chưa chọn, thêm vào danh sách
                         tilesToSwapIndices_.push_back(i);
                     }
                 }
@@ -702,7 +703,7 @@ void GameUI::renderMenu() {
     SDL_SetRenderDrawColor(renderer_, COLOR_BACKGROUND.r, COLOR_BACKGROUND.g, COLOR_BACKGROUND.b, 255);
     SDL_RenderFillRect(renderer_, &optionsPanelRect_);
 
-    // --- VẼ LẠI NỘI DUNG PANEL TÙY CHỌN ---
+    // --- VẼ NỘI DUNG PANEL TÙY CHỌN ---
     // Tiêu đề chọn độ khó
     renderText("Select Difficulty", optionsPanelRect_.x, optionsPanelRect_.y, optionsPanelRect_.w, 40, fontBig_, COLOR_TEXT_LIGHT);
 

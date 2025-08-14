@@ -66,7 +66,6 @@ void MediumStrategy::extendRight(const Board& board, std::string currentWord, in
                                  std::unordered_map<char, int> rackLetters, int blankCount, int limit,
                                  std::set<Move>& plays) {
     if (c < 15 && board.hasTile(r, c)) {
-        // *** SỬA LỖI: Dùng getCell(r, c).tile thay vì getTile(r, c) ***
         char letter = board.getCell(r, c).tile.getLetter();
         if (dictionary_.isPrefix(currentWord + letter)) {
             extendRight(board, currentWord + letter, r, c + 1, rackLetters, blankCount, limit, plays);
@@ -101,7 +100,6 @@ void MediumStrategy::extendDown(const Board& board, std::string currentWord, int
                                 std::unordered_map<char, int> rackLetters, int blankCount, int limit,
                                 std::set<Move>& plays) {
     if (r < 15 && board.hasTile(r, c)) {
-        // *** SỬA LỖI: Dùng getCell(r, c).tile thay vì getTile(r, c) ***
         char letter = board.getCell(r, c).tile.getLetter();
         if (dictionary_.isPrefix(currentWord + letter)) {
             extendDown(board, currentWord + letter, r + 1, c, rackLetters, blankCount, limit, plays);

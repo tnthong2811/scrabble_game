@@ -3,7 +3,7 @@
 #include <cctype>
 #include <sstream>
 #include <iostream>
-#include <limits> // Cần cho deserialize
+#include <limits> 
 
 Player::Player(const std::string& name) : name_(name), score_(0) {}
 
@@ -169,7 +169,7 @@ std::string Player::findTwoLetterWord(const TrieDictionary& dictionary) const {
             std::string word = "";
             word += rack_[i].getLetter();
             word += rack_[j].getLetter();
-            if (dictionary.contains(word)) return word;  // Check dict
+            if (dictionary.contains(word)) return word;  
         }
     }
     return "";

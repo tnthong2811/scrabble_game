@@ -43,7 +43,6 @@ public:
 
     MoveResult validateAndScoreMove(const Move& move, const Player& player, const TrieDictionary& dictionary) const;
     void executeMove(const Move& move);
-    // Thêm vào phần public
     void placeTileForAI(int row, int col, Tile tile);
     // === Các hàm Getters công khai cho UI và AI ===
     bool hasTile(int row, int col) const;

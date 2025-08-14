@@ -5,8 +5,6 @@
 #include <map>
 #include <string>
 
-// SỬA LỖI 1: Chỉ khai báo biến, không định nghĩa.
-// 'extern' báo cho trình biên dịch rằng định nghĩa của biến này nằm ở file khác.
 namespace TileDistributions {
     extern const std::vector<Tile> STANDARD_ENGLISH;
 }
@@ -20,7 +18,6 @@ public:
     Tile drawTile();
     std::vector<Tile> drawTiles(int count);
 
-    // SỬA LỖI 2: Thống nhất chữ ký hàm để khớp với file .cpp
     void returnTile(const Tile& tile);
     void returnTiles(const std::vector<Tile>& tiles);
 

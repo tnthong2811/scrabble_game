@@ -208,7 +208,7 @@ bool TileBag::deserialize(const std::string& data) {
             tiles_.push_back(tile);
             updateLetterCounts(tile, 1);
         } catch (const std::exception&) {
-            return false;  // File hỏng, fail load
+            return false;  
         }
     }
     return true;
