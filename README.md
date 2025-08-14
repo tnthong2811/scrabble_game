@@ -1,4 +1,4 @@
-# 🎮 Game Scrabble với AI thông minh 🎯
+# Game Scrabble với AI thông minh 🎯
 
 ![Contributors](https://img.shields.io/github/contributors/tnthong2811/scrabble_game)
 ![Commits](https://img.shields.io/github/commit-activity/m/tnthong2811/scrabble_game)
@@ -86,6 +86,28 @@ build\game.exe
 # Trên Linux/macOS
 ./build/game
 ```
+
+---
+
+## 🎮 Cách chơi (Usage)
+- **Bắt đầu game mới:** AI sẽ đi trước (có thể thay đổi trong file `Game.cpp`).
+- **Lượt của bạn:** Kéo thả các quân cờ từ khay (phía dưới) lên bàn cờ, sau đó nhấn **SUBMIT**.
+- **Nước đi không hợp lệ:** Các quân cờ sẽ tự động quay về khay, thông báo lỗi sẽ hiện trong console.
+- **Lượt của AI:** AI sẽ tự động chơi, bạn có thể xem chi tiết nước đi (từ đã đặt, điểm số) trong console.
+- **Từ điển:** Bạn có thể thêm từ mới vào file `assets/dictionary/dictionary.txt`.
+- **Thoát game:** Đóng cửa sổ trò chơi.
+
+---
+
+## 🤝 Đóng góp (Contributing)
+
+Mọi sự đóng góp đều được chào đón! Nếu bạn có ý tưởng để cải thiện game, vui lòng tạo một "Pull Request" hoặc mở một "Issue" để chúng ta cùng thảo luận.
+
+1.  Fork the Project
+2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4.  Push to the Branch (`git push origin feature/AmazingFeature`)
+5.  Open a Pull Request
 
 ---
 
