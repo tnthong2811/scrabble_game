@@ -347,34 +347,40 @@ void GameUI::handleGameEvents() {
             continue;
         }
 
-        int mouseX, mouseY;
-        SDL_GetMouseState(&mouseX, &mouseY);
         Player* player = game_.getPlayer(0);
         if (!player) continue;
 
-        // --- XỬ LÝ NHẤN CHUỘT ---
+        // Cập nhật vị trí chuột khi di chuyển
+        if (e.type == SDL_MOUSEMOTION) {
+            mousePos_.x = e.motion.x;
+            mousePos_.y = e.motion.y;
+        }
+
         if (e.type == SDL_MOUSEBUTTONDOWN) {
-            if (isDragging_) continue; // Nếu đang kéo rồi thì bỏ qua
+            if (isDragging_) continue;
             const int RACK_CAPACITY = 7;
             const int TILE_SPACING = 8;
             int totalTileWidth = RACK_CAPACITY * TILE_SIZE + (RACK_CAPACITY - 1) * TILE_SPACING;
             int startX = rackRect_.x + (rackRect_.w - totalTileWidth) / 2;
             int startY = rackRect_.y + (rackRect_.h - TILE_SIZE) / 2;
 
-            // Nút RESET
+            int mouseX = e.button.x;
+            int mouseY = e.button.y;
+
+            // Kiểm tra nút Reset
             if (mouseX >= resetButtonRect_.x && mouseX < resetButtonRect_.x + resetButtonRect_.w &&
                 mouseY >= resetButtonRect_.y && mouseY < resetButtonRect_.y + resetButtonRect_.h) {
                 currentMoveTiles_.clear();
-                continue; 
+                continue;
             }
-            // Nút SKIP
+            // Kiểm tra nút Skip
             if (mouseX >= skipButtonRect_.x && mouseX < skipButtonRect_.x + skipButtonRect_.w &&
                 mouseY >= skipButtonRect_.y && mouseY < skipButtonRect_.y + skipButtonRect_.h) {
                 currentMoveTiles_.clear();
-                game_.passTurn(0); 
+                game_.passTurn(0);
                 continue;
             }
-            // Nút SUBMIT
+            // Kiểm tra nút Submit
             if (mouseX >= buttonsRect_.x && mouseX < buttonsRect_.x + buttonsRect_.w && 
                 mouseY >= buttonsRect_.y && mouseY < buttonsRect_.y + buttonsRect_.h) {
                 if (!currentMoveTiles_.empty()) {
@@ -410,9 +416,9 @@ void GameUI::handleGameEvents() {
                         invalidMoveTimestamp_ = SDL_GetTicks();
                     }
                 }
-                continue; 
+                continue;
             }
-
+            // Kiểm tra nút Swap
             if (mouseX >= swapButtonRect_.x && mouseX < swapButtonRect_.x + swapButtonRect_.w &&
                 mouseY >= swapButtonRect_.y && mouseY < swapButtonRect_.y + swapButtonRect_.h) {                
                 currentMoveTiles_.clear();
@@ -421,6 +427,7 @@ void GameUI::handleGameEvents() {
                 continue;
             } 
 
+            // Kiểm tra tile trên bàn cờ
             for (size_t i = 0; i < currentMoveTiles_.size(); ++i) {
                 const auto& placedTile = currentMoveTiles_[i];
                 SDL_Rect tileRect = { boardRect_.x + placedTile.boardCol * CELL_SIZE, boardRect_.y + placedTile.boardRow * CELL_SIZE, TILE_SIZE, TILE_SIZE };
@@ -432,10 +439,12 @@ void GameUI::handleGameEvents() {
                     originalDragPos_ = {placedTile.boardCol, placedTile.boardRow};
                     dragOffset_ = { mouseX - tileRect.x, mouseY - tileRect.y };
                     currentMoveTiles_.erase(currentMoveTiles_.begin() + i);
-                    goto end_mouse_down_check;
+                    mousePos_ = { mouseX, mouseY }; // Cập nhật vị trí chuột
+                    break;
                 }
             }
 
+            // Kiểm tra tile trên rack
             for (size_t i = 0; i < player->getRack().size(); ++i) {
                 bool alreadyPlaced = false;
                 for(const auto& placedTile : currentMoveTiles_) {
@@ -451,17 +460,18 @@ void GameUI::handleGameEvents() {
                     draggedTile_ = player->getRack()[i];
                     draggedBoardTileIndex_ = -1;
                     dragOffset_ = { mouseX - tileRect.x, mouseY - tileRect.y };
+                    mousePos_ = { mouseX, mouseY }; // Cập nhật vị trí chuột
                     break;
                 }
             }
-            end_mouse_down_check:;
         } 
         else if (e.type == SDL_MOUSEBUTTONUP) {
             if (isDragging_) {
                 bool dropped_successfully = false;
-                if (mouseX >= boardRect_.x && mouseX < boardRect_.x + boardRect_.w && mouseY >= boardRect_.y && mouseY < boardRect_.y + boardRect_.h) {
-                    int col = (mouseX - boardRect_.x) / CELL_SIZE;
-                    int row = (mouseY - boardRect_.y) / CELL_SIZE;
+                if (mousePos_.x >= boardRect_.x && mousePos_.x < boardRect_.x + boardRect_.w && 
+                    mousePos_.y >= boardRect_.y && mousePos_.y < boardRect_.y + boardRect_.h) {
+                    int col = (mousePos_.x - boardRect_.x) / CELL_SIZE;
+                    int row = (mousePos_.y - boardRect_.y) / CELL_SIZE;
                     bool isOccupied = game_.getBoard().hasTile(row, col);
                     for(const auto& placedTile : currentMoveTiles_) {
                         if (placedTile.boardRow == row && placedTile.boardCol == col) { isOccupied = true; break; }
@@ -471,13 +481,13 @@ void GameUI::handleGameEvents() {
                         dropped_successfully = true;
                     }
                 }
-                if (!dropped_successfully && mouseX >= rackRect_.x && mouseX < rackRect_.x + rackRect_.w && mouseY >= rackRect_.y && mouseY < rackRect_.y + rackRect_.h) {
+                if (!dropped_successfully && mousePos_.x >= rackRect_.x && mousePos_.x < rackRect_.x + rackRect_.w && 
+                    mousePos_.y >= rackRect_.y && mousePos_.y < rackRect_.y + rackRect_.h) {
                     dropped_successfully = true;
                 }
-                if (!dropped_successfully) {
-                    if (draggedBoardTileIndex_ != -1) {
-                         currentMoveTiles_.insert(currentMoveTiles_.begin() + draggedBoardTileIndex_, {draggedTile_, originalDragPos_.y, originalDragPos_.x, draggedRackIndex_});
-                    }
+                if (!dropped_successfully && draggedBoardTileIndex_ != -1) {
+                    currentMoveTiles_.insert(currentMoveTiles_.begin() + draggedBoardTileIndex_, 
+                                            {draggedTile_, originalDragPos_.y, originalDragPos_.x, draggedRackIndex_});
                 }
                 isDragging_ = false;
                 draggedRackIndex_ = -1;
@@ -497,31 +507,57 @@ void GameUI::renderGame() {
     renderRack();
 
     if (isDragging_) {
-        int mouseX, mouseY;
-        SDL_GetMouseState(&mouseX, &mouseY);
-        renderTile(draggedTile_, mouseX - dragOffset_.x, mouseY - dragOffset_.y);
+        // Vẽ bóng mờ
+        SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 100); // Bóng đen mờ
+        SDL_Rect shadowRect = {
+            mousePos_.x - dragOffset_.x + 3, // Lệch 3px để tạo bóng
+            mousePos_.y - dragOffset_.y + 3,
+            static_cast<int>(TILE_SIZE * 1.1f), // Phóng to 1.1x
+            static_cast<int>(TILE_SIZE * 1.1f)
+        };
+        SDL_RenderFillRect(renderer_, &shadowRect);
+        SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_NONE);
+
+        // Vẽ tile kéo với kích thước phóng to
+        SDL_Rect tileRect = {
+            mousePos_.x - dragOffset_.x,
+            mousePos_.y - dragOffset_.y,
+            static_cast<int>(TILE_SIZE * 1.1f), // Phóng to 1.1x
+            static_cast<int>(TILE_SIZE * 1.1f)
+        };
+        SDL_SetRenderDrawColor(renderer_, COLOR_TILE.r, COLOR_TILE.g, COLOR_TILE.b, 255);
+        SDL_RenderFillRect(renderer_, &tileRect);
+
+        SDL_SetRenderDrawColor(renderer_, 80, 50, 20, 255);
+        SDL_RenderDrawRect(renderer_, &tileRect);
+
+        if (!draggedTile_.isBlank()) {
+            std::string letterStr(1, draggedTile_.getLetter());
+            renderText(letterStr, tileRect.x, tileRect.y, tileRect.w, tileRect.h - 5, fontTile_, COLOR_TEXT_DARK);
+            
+            std::string valueStr = std::to_string(draggedTile_.getValue());
+            renderText(valueStr, tileRect.x + tileRect.w - 12, tileRect.y + tileRect.h - 16, fontSmall_, COLOR_TEXT_DARK);
+        }
     }
 
     if (invalidMoveTimestamp_ != 0) {
         Uint32 currentTime = SDL_GetTicks();
         if (currentTime - invalidMoveTimestamp_ < 2000) {
             SDL_Color red = {255, 0, 0, 255};
-            SDL_Color black = {0, 0, 0, 255}; // Màu đen cho viền
-            // Tính vị trí trung tâm
+            SDL_Color black = {0, 0, 0, 255};
             int x = boardRect_.x;
             int y = boardRect_.y;
             int w = boardRect_.w;
             int h = boardRect_.h;
-            // Vẽ văn bản màu đen tại các vị trí lệch để tạo viền
-            renderText("INVALID MOVE", x - 1, y - 1, w, h, fontIVL_, black); // Trái trên
-            renderText("INVALID MOVE", x + 1, y - 1, w, h, fontIVL_, black); // Phải trên
-            renderText("INVALID MOVE", x - 1, y + 1, w, h, fontIVL_, black); // Trái dưới
-            renderText("INVALID MOVE", x + 1, y + 1, w, h, fontIVL_, black); // Phải dưới
-            renderText("INVALID MOVE", x - 1, y, w, h, fontIVL_, black);     // Trái
-            renderText("INVALID MOVE", x + 1, y, w, h, fontIVL_, black);     // Phải
-            renderText("INVALID MOVE", x, y - 1, w, h, fontIVL_, black);     // Trên
-            renderText("INVALID MOVE", x, y + 1, w, h, fontIVL_, black);     // Dưới
-            // Vẽ văn bản đỏ chính
+            renderText("INVALID MOVE", x - 1, y - 1, w, h, fontIVL_, black);
+            renderText("INVALID MOVE", x + 1, y - 1, w, h, fontIVL_, black);
+            renderText("INVALID MOVE", x - 1, y + 1, w, h, fontIVL_, black);
+            renderText("INVALID MOVE", x + 1, y + 1, w, h, fontIVL_, black);
+            renderText("INVALID MOVE", x - 1, y, w, h, fontIVL_, black);
+            renderText("INVALID MOVE", x + 1, y, w, h, fontIVL_, black);
+            renderText("INVALID MOVE", x, y - 1, w, h, fontIVL_, black);
+            renderText("INVALID MOVE", x, y + 1, w, h, fontIVL_, black);
             renderText("INVALID MOVE", x, y, w, h, fontIVL_, red);
         } else {
             invalidMoveTimestamp_ = 0;

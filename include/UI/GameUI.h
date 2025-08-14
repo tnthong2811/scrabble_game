@@ -88,6 +88,7 @@ private:
     Tile draggedTile_;
     SDL_Point dragOffset_;
     SDL_Point originalDragPos_;
+    SDL_Point mousePos_ = {0, 0}; 
     Uint32 invalidMoveTimestamp_ = 0;
     int draggedBoardTileIndex_ = -1;
     SDL_Rect timerPanelRect_;
