@@ -20,6 +20,9 @@ public:
     bool canFormWord(const std::string& word) const;
     std::string findTwoLetterWord(const TrieDictionary& dictionary) const;
     std::string findValidWord(const TrieDictionary& dictionary) const;
+    void setRack(const std::vector<Tile>& newRack) {
+        rack_ = newRack;
+    }
     // === Game Actions ===
     bool swapTiles(TileBag& bag, const std::vector<char>& letters);
     std::vector<char> selectSwapTiles() const;

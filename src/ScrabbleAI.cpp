@@ -5,11 +5,14 @@
 #include "AI/Heuristics/Heuristic.h"
 #include <algorithm>
 namespace AI {
+
 ScrabbleAI::ScrabbleAI(Difficulty difficulty, const TrieDictionary& dictionary)
     : difficulty_(difficulty), dictionary_(dictionary) {
     initializeStrategy();
 }
+
 ScrabbleAI::~ScrabbleAI() = default;
+
 void ScrabbleAI::initializeStrategy() {
     switch (difficulty_) {
         case Difficulty::EASY:
@@ -28,37 +31,48 @@ void ScrabbleAI::initializeStrategy() {
             break;
     }
 }
+
 std::vector<Play> ScrabbleAI::generateTopPlays(const Board& board, const std::vector<Tile>& rack, int topN) {
-    // 1. Lấy tất cả các nước đi có thể từ chiến lược
-    std::vector<Move> moves = strategy_->generatePlays(board, rack);
-   
-    // 2. Chuyển đổi Move thành Play và chấm điểm heuristic
-    std::vector<Play> plays;
-    for (auto& m : moves) {
-        Play p(m);
-        // Tính điểm heuristic và lưu trực tiếp vào đối tượng Play
-        p.score = heuristic_->evaluate(p, board, calculateRemainingRack(rack, p));
-        plays.push_back(p);
+    // 1. Lấy tất cả các nước đi "tiềm năng" từ chiến lược
+    std::vector<Move> potential_moves = strategy_->generatePlays(board, rack);
+    
+    // 2. Tạo một Player tạm thời để dùng cho việc xác thực
+    Player tempPlayer("suggester");
+    tempPlayer.setRack(rack);
+
+    // 3. Lọc và xác thực từng nước đi bằng hàm của Board
+    std::vector<Play> valid_plays;
+    for (const auto& move : potential_moves) {
+        // Gọi hàm xác thực CÓ SẴN trong Board.cpp
+        MoveResult result = board.validateAndScoreMove(move, tempPlayer, dictionary_);
+        
+        if (result.isValid) {
+            Play p(move);
+            p.score = result.score; // Sử dụng điểm số đã được xác thực
+            valid_plays.push_back(p);
+        }
     }
-   
-    // 3. Sắp xếp danh sách các Play dựa trên điểm số giảm dần
-    std::sort(plays.begin(), plays.end(), [](const Play& a, const Play& b) {
+    
+    // 4. Sắp xếp các nước đi ĐÃ HỢP LỆ dựa trên điểm số
+    std::sort(valid_plays.begin(), valid_plays.end(), [](const Play& a, const Play& b) {
         return a.score > b.score;
     });
-   
-    // 4. Cắt danh sách để chỉ giữ lại topN nước đi tốt nhất
-    if (plays.size() > static_cast<size_t>(topN)) {
-        plays.resize(static_cast<size_t>(topN));
+    
+    // 5. Cắt danh sách để chỉ giữ lại topN nước đi tốt nhất
+    if (valid_plays.size() > static_cast<size_t>(topN)) {
+        valid_plays.resize(static_cast<size_t>(topN));
     }
-   
-    return plays;
+    
+    return valid_plays;
 }
+
 void ScrabbleAI::setDifficulty(Difficulty newDifficulty) {
     if (difficulty_ != newDifficulty) {
         difficulty_ = newDifficulty;
         initializeStrategy();
     }
 }
+
 std::vector<Tile> ScrabbleAI::calculateRemainingRack(const std::vector<Tile>& rack, const Play& play) {
     std::vector<Tile> remaining = rack;
     const auto& tilesUsed = play.getMove().getTilesUsed();

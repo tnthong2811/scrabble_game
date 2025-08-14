@@ -167,7 +167,7 @@ void GameUI::close() {
 void GameUI::run() {
     running_ = true;
 
-    const double MS_PER_UPDATE = 16.666; // ~60 updates per second
+    const double MS_PER_UPDATE = 8.333; // ~60 updates per second
     double previousTime = SDL_GetTicks();
     double lag = 0.0;
     Uint32 loadingStartTime = 0; // Thời điểm bắt đầu trạng thái LOADING
