@@ -3,10 +3,21 @@
 #include <vector>
 #include <string>
 #include <tuple>
+#include <functional>
 
 class Move {
 public:
     enum class Direction { HORIZONTAL, VERTICAL };
+
+    struct Hash {
+        size_t operator()(const Move& m) const {
+            size_t h1 = std::hash<std::string>{}(m.getWord());
+            size_t h2 = std::hash<int>{}(m.getRow());
+            size_t h3 = std::hash<int>{}(m.getCol());
+            size_t h4 = std::hash<int>{}(static_cast<int>(m.getDirection()));
+            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3);
+        }
+    };
 
     // Constructor
     Move(const std::string& word, int row, int col, Direction dir);
@@ -35,6 +46,11 @@ public:
     bool operator<(const Move& other) const {
         return std::tie(word_, row_, col_, direction_) < 
             std::tie(other.word_, other.row_, other.col_, other.direction_);
+    }
+
+    bool operator==(const Move& other) const {
+        return row_ == other.row_ && col_ == other.col_ && 
+               word_ == other.word_ && direction_ == other.direction_;
     }
 
 private:

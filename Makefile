@@ -16,7 +16,7 @@ LIB_DIR     = lib
 ASSETS_DIR  = assets
 
 # --- 3. Tìm kiếm tất cả các file mã nguồn ---
-SRC := $(wildcard $(SRC_DIR)/*.cpp)
+SRC := $(filter-out $(SRC_DIR)/build_gaddag.cpp, $(wildcard $(SRC_DIR)/*.cpp))
 OBJ := $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRC))
 
 # --- 4. Tên file thực thi đầu ra ---
@@ -77,3 +77,13 @@ clean:
 
 # --- Quy tắc PHONY ---
 .PHONY: all clean copy_dlls
+
+
+# Quy tắc để tạo file thực thi build_gaddag
+build_gaddag: build/build_gaddag.o build/GADDAG.o build/trie_dictionary.o
+	$(CXX) $(CXXFLAGS) $^ -o build/build_gaddag
+
+# Quy tắc để biên dịch file build_gaddag.cpp
+build/build_gaddag.o: src/build_gaddag.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+

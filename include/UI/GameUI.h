@@ -74,6 +74,7 @@ private:
     SDL_Rect timeButton45Rect_;          
     SDL_Rect difficultyButtonEasyRect_;
     SDL_Rect difficultyButtonMediumRect_;
+    SDL_Rect difficultyButtonHardRect_;
     AI::Difficulty selectedDifficulty_ = AI::Difficulty::MEDIUM;     
 
     bool isDragging_ = false;

@@ -1,6 +1,7 @@
 #include "AI/Utils/GADDAG.h"
 #include <algorithm>
 #include <string>
+#include <stack>  // Để iterative deserialize
 
 namespace AI {
 namespace Utils {
@@ -16,9 +17,12 @@ void GADDAG::buildFromDictionary(const TrieDictionary& dictionary) {
 }
 
 void GADDAG::addWord(const std::string& word) {
-    std::string reversed(word.rbegin(), word.rend());
+    // FIX: Sử dụng rev(prefix) > suffix thay vì rev(suffix) > suffix
     for (size_t i = 1; i <= word.length(); ++i) {
-        std::string transformed = reversed.substr(0, i) + ">" + word.substr(word.length() - i);
+        std::string prefix = word.substr(0, i);
+        std::string rev_prefix(prefix.rbegin(), prefix.rend());
+        std::string suffix = (i < word.length()) ? word.substr(i) : "";  // Suffix empty nếu i == length
+        std::string transformed = rev_prefix + ">" + suffix;
         insertWord(transformed);
     }
 }
@@ -44,6 +48,82 @@ std::shared_ptr<Node> GADDAG::followArc(std::shared_ptr<Node> node, char c) cons
 
 std::shared_ptr<Node> GADDAG::getRoot() const {
     return root_;
+}
+
+bool GADDAG::saveToFile(const std::string& filename) const {
+    std::ofstream outFile(filename, std::ios::binary);
+    if (!outFile) return false;
+    serializeNode(outFile, root_);
+    return true;
+}
+
+bool GADDAG::loadFromFile(const std::string& filename) {
+    std::ifstream inFile(filename, std::ios::binary);
+    if (!inFile) return false;
+    root_ = deserializeNode(inFile);
+    return root_ != nullptr;
+}
+
+void GADDAG::serializeNode(std::ostream& out, const std::shared_ptr<Node>& node) const {
+    out.write(reinterpret_cast<const char*>(&node->isTerminal), sizeof(node->isTerminal));
+    size_t numChildren = node->children.size();
+    out.write(reinterpret_cast<const char*>(&numChildren), sizeof(numChildren));
+    for (const auto& pair : node->children) {
+        out.write(&pair.first, sizeof(pair.first));
+        serializeNode(out, pair.second);
+    }
+}
+
+// FIX: Làm iterative để tránh recursion slow/stack overflow
+std::shared_ptr<Node> GADDAG::deserializeNode(std::istream& in) {
+    struct StackFrame {
+        std::shared_ptr<Node> node;
+        size_t numChildren;
+        size_t childIndex;
+        char key;
+    };
+
+    std::stack<StackFrame> stack;
+    std::shared_ptr<Node> root = std::make_shared<Node>();
+
+    bool isTerminal;
+    in.read(reinterpret_cast<char*>(&isTerminal), sizeof(isTerminal));
+    if (in.gcount() != sizeof(isTerminal)) return nullptr;
+    root->isTerminal = isTerminal;
+
+    size_t numChildren;
+    in.read(reinterpret_cast<char*>(&numChildren), sizeof(numChildren));
+    if (in.gcount() != sizeof(numChildren)) return nullptr;
+
+    stack.push({root, numChildren, 0, '\0'});
+
+    while (!stack.empty()) {
+        StackFrame& frame = stack.top();
+
+        if (frame.childIndex < frame.numChildren) {
+            char key;
+            in.read(&key, sizeof(key));
+            if (in.gcount() != sizeof(key)) return nullptr;
+            frame.key = key;
+
+            auto child = std::make_shared<Node>();
+            in.read(reinterpret_cast<char*>(&isTerminal), sizeof(isTerminal));
+            if (in.gcount() != sizeof(isTerminal)) return nullptr;
+            child->isTerminal = isTerminal;
+
+            in.read(reinterpret_cast<char*>(&numChildren), sizeof(numChildren));
+            if (in.gcount() != sizeof(numChildren)) return nullptr;
+
+            frame.node->children[frame.key] = child;
+            frame.childIndex++;
+
+            stack.push({child, numChildren, 0, '\0'});
+        } else {
+            stack.pop();
+        }
+    }
+
+    return root;
 }
 
 } // namespace Utils

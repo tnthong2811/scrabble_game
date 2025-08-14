@@ -1,11 +1,10 @@
-// HardStrategy.h - Correct signatures with all params, Node not GADDAG::Node
 #pragma once
 #include "BaseStrategy.h"
 #include "core/Board.h"
 #include "AI/Utils/GADDAG.h"
 #include "core/dictionary/trie_dictionary.hpp"
-#include "core/Tile.h"  // For Tile
-#include "core/Move.h"  // For Move
+#include "core/Tile.h" 
+#include "core/Move.h"  
 #include <vector>
 #include <string>
 #include <utility>
@@ -24,23 +23,22 @@ private:
     const TrieDictionary& dictionary_;
     Utils::GADDAG gaddag_;
 
-    void generateMoves(const Board& board, const std::vector<Tile>& rack, std::vector<Move>& plays);
+    void gen(int r, int c, bool isHorizontal, const Board& board,
+             std::unordered_map<char, int> rackCount, int blanks,
+             std::shared_ptr<Utils::Node> node, const std::string& word_part,
+             std::unordered_set<Move, Move::Hash>& plays, int anchor_r, int anchor_c);
+    
+    void go(int r, int c, bool isHorizontal, const Board& board,
+            std::unordered_map<char, int> rackCount, int blanks,
+            std::shared_ptr<Utils::Node> node, const std::string& word_part,
+            std::unordered_set<Move, Move::Hash>& plays, int anchor_r, int anchor_c);
 
-    void gen(int row, int col, bool horizontal, const Board& board,
-             std::unordered_map<char, int>& rackCount, int& blanks,
-             std::shared_ptr<Utils::Node> node, std::string& currentWord,
-             std::vector<Tile>& used, int& currentScore, int& wordMult,
-             std::vector<Move>& plays, int limit);
+    bool crossCheck(int r, int c, char letter, bool isHorizontal, const Board& board);
+    std::string getCrossWord(int r, int c, char letter, bool isHorizontal, const Board& board);
 
-    void go(int row, int col, bool horizontal, const Board& board,
-            std::unordered_map<char, int>& rackCount, int& blanks,
-            std::shared_ptr<Utils::Node> node, std::string& currentWord,
-            std::vector<Tile>& used, int& currentScore, int& wordMult,
-            std::vector<Move>& plays, int limit);
-            
-    std::unordered_set<char> computeCrossSet(int row, int col, bool perpVertical, const Board& board);
 
     std::vector<std::pair<int, int>> findAnchorPoints(const Board& board);
+    std::string rackToString(const std::vector<Tile>& rack);
 };
 
 } // namespace Strategies

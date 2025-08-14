@@ -71,13 +71,13 @@ void GameUI::defineLayout() {
     int buttonWidth = 280;
     int menuButtonHeight = 55;
     int buttonSpacingMenu = 20;
-    int groupSpacing = 100; // Khoảng cách giữa các nhóm tùy chọn
+    int groupSpacing = 160; // Khoảng cách giữa các nhóm tùy chọn
 
     // Vị trí các nút chọn độ khó (đẩy lên cao)
-    int difficultyButtonsTopY = optionsPanelRect_.y + 100;
+    int difficultyButtonsTopY = optionsPanelRect_.y + 60;
     difficultyButtonEasyRect_ = { optionsCenterX - buttonWidth / 2, difficultyButtonsTopY, buttonWidth, menuButtonHeight };
     difficultyButtonMediumRect_ = { optionsCenterX - buttonWidth / 2, difficultyButtonEasyRect_.y + menuButtonHeight + buttonSpacingMenu, buttonWidth, menuButtonHeight };
-
+    difficultyButtonHardRect_ = { optionsCenterX - buttonWidth / 2, difficultyButtonMediumRect_.y + menuButtonHeight + buttonSpacingMenu, buttonWidth, menuButtonHeight };
     // Vị trí các nút chọn thời gian (đặt bên dưới nhóm độ khó)
     int timeButtonsTopY = difficultyButtonMediumRect_.y + menuButtonHeight + groupSpacing;
     timeButton15Rect_ = { optionsCenterX - buttonWidth / 2, timeButtonsTopY, buttonWidth, menuButtonHeight };
@@ -587,6 +587,11 @@ void GameUI::handleMenuEvents() {
                      mouseY >= difficultyButtonMediumRect_.y && mouseY < difficultyButtonMediumRect_.y + difficultyButtonMediumRect_.h) {
                 selectedDifficulty_ = AI::Difficulty::MEDIUM;
             }
+            //Xử lý click nút Hard
+            else if (mouseX >= difficultyButtonHardRect_.x && mouseX < difficultyButtonHardRect_.x + difficultyButtonHardRect_.w &&
+                     mouseY >= difficultyButtonHardRect_.y && mouseY < difficultyButtonHardRect_.y + difficultyButtonHardRect_.h) {
+                selectedDifficulty_ = AI::Difficulty::HARD;
+            }
             // Xử lý click nút 15 phút
             else if (mouseX >= timeButton15Rect_.x && mouseX < timeButton15Rect_.x + timeButton15Rect_.w &&
                 mouseY >= timeButton15Rect_.y && mouseY < timeButton15Rect_.y + timeButton15Rect_.h) {
@@ -629,7 +634,7 @@ void GameUI::renderMenu() {
 
     // --- VẼ LẠI NỘI DUNG PANEL TÙY CHỌN ---
     // Tiêu đề chọn độ khó
-    renderText("Select Difficulty", optionsPanelRect_.x, optionsPanelRect_.y + 30, optionsPanelRect_.w, 40, fontBig_, COLOR_TEXT_LIGHT);
+    renderText("Select Difficulty", optionsPanelRect_.x, optionsPanelRect_.y, optionsPanelRect_.w, 40, fontBig_, COLOR_TEXT_LIGHT);
 
     // Nút Easy
     SDL_SetRenderDrawColor(renderer_, (selectedDifficulty_ == AI::Difficulty::EASY) ? COLOR_BUTTON.r : 80, (selectedDifficulty_ == AI::Difficulty::EASY) ? COLOR_BUTTON.g : 80, (selectedDifficulty_ == AI::Difficulty::EASY) ? COLOR_BUTTON.b : 90, 255);
@@ -641,9 +646,12 @@ void GameUI::renderMenu() {
     SDL_RenderFillRect(renderer_, &difficultyButtonMediumRect_);
     renderText("Medium", difficultyButtonMediumRect_.x, difficultyButtonMediumRect_.y, difficultyButtonMediumRect_.w, difficultyButtonMediumRect_.h, fontNormal_, COLOR_TEXT_LIGHT);
 
+    SDL_SetRenderDrawColor(renderer_, (selectedDifficulty_ == AI::Difficulty::HARD) ? COLOR_BUTTON.r : 80, (selectedDifficulty_ == AI::Difficulty::HARD) ? COLOR_BUTTON.g : 80, (selectedDifficulty_ == AI::Difficulty::HARD) ? COLOR_BUTTON.b : 90, 255);
+    SDL_RenderFillRect(renderer_, &difficultyButtonHardRect_);
+    renderText("Hard", difficultyButtonHardRect_.x, difficultyButtonHardRect_.y, difficultyButtonHardRect_.w, difficultyButtonHardRect_.h, fontNormal_, COLOR_TEXT_LIGHT);
 
     // Tiêu đề chọn thời gian
-    renderText("Select Game Time", optionsPanelRect_.x, optionsPanelRect_.y + 260, optionsPanelRect_.w, 40, fontBig_, COLOR_TEXT_LIGHT);
+    renderText("Select Game Time", optionsPanelRect_.x, optionsPanelRect_.y + 284, optionsPanelRect_.w, 40, fontBig_, COLOR_TEXT_LIGHT);
     
     // Nút 15 phút
     SDL_SetRenderDrawColor(renderer_, (selectedGameTime_ == 15) ? COLOR_BUTTON.r : 80, (selectedGameTime_ == 15) ? COLOR_BUTTON.g : 80, (selectedGameTime_ == 15) ? COLOR_BUTTON.b : 90, 255);
@@ -998,7 +1006,7 @@ void GameUI::renderSuggestionPanel(const SDL_Rect& rect) {
     const auto& suggestions = game_.getSuggestions();
 
     if (suggestions.empty()) {
-        renderText("No moves available.", rect.x + 15, rect.y + 40, 0, 0, fontSmall_, {180, 180, 180, 255});
+        renderText("No moves available.", rect.x + 15, rect.y + 40, 0, 0, fontHistory_, {180, 180, 180, 255});
         return;
     }
 

@@ -5,6 +5,7 @@
 *.slo
 *.lo
 *.o
+*.exe
 *.obj
 
 # Precompiled Headers
@@ -38,3 +39,6 @@
 
 # debug information files
 *.dwo
+
+# Bỏ qua file dữ liệu GADDAG đã được tạo
+gaddag.dat
