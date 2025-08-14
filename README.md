@@ -89,6 +89,18 @@ build\game.exe
 
 ---
 
+## 🖼️ Hình ảnh (Screenshots)
+
+**Màn hình Menu chính**
+![Màn hình menu chính của game Scrabble](assets/image/image1.png)
+
+**Màn hình chơi game**
+![Màn hình chơi game Scrabble](assets/image/image2.png)
+
+**Màn hình game over**
+![Màn hình khi game over](assets/image/image.png)
+---
+
 ## 🎮 Cách chơi (Usage)
 - **Bắt đầu game mới:** AI sẽ đi trước (có thể thay đổi trong file `Game.cpp`).
 - **Lượt của bạn:** Kéo thả các quân cờ từ khay (phía dưới) lên bàn cờ, sau đó nhấn **SUBMIT**.
