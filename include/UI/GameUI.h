@@ -7,6 +7,7 @@
 #include "core/Board.h"
 #include <vector>
 #include <string>
+#include <unordered_map> 
 
 struct TempPlacedTile {
     Tile tile;
@@ -32,6 +33,8 @@ private:
 
     SDL_Window* window_ = nullptr;
     SDL_Renderer* renderer_ = nullptr;
+    SDL_Texture* createTileTexture(const Tile& tile);
+    SDL_Texture* createLabelTexture(const std::string& label);
     TTF_Font* fontNormal_ = nullptr;
     TTF_Font* fontTile_ = nullptr;
     TTF_Font* fontSmall_ = nullptr;
@@ -94,6 +97,8 @@ private:
     SDL_Rect timerPanelRect_;
     std::vector<TempPlacedTile> currentMoveTiles_;
     std::vector<int> tilesToSwapIndices_;
+    std::unordered_map<char, SDL_Texture*> tileTextureCache_;  
+    std::unordered_map<std::string, SDL_Texture*> labelTextureCache_;
 
     bool init();
     void defineLayout();
@@ -105,6 +110,9 @@ private:
 
     void renderBoard();
     void renderTile(const Tile& tile, int x, int y);
+    void preRenderTileTextures();
+    void preRenderLabelTextures();
+    void renderLabel(const std::string& label, int x, int y, int w, int h);
     void renderRack();
     void renderSidebar();
     void renderButtons();

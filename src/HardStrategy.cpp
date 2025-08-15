@@ -115,7 +115,7 @@ void HardStrategy::gen(int r, int c, bool isHorizontal, const Board& board,
                 if (next_node) {
                     rackCount[letter]--;
                     gen(prev_r, prev_c, isHorizontal, board, rackCount, blanks, next_node, letter + word_part, plays, anchor_r, anchor_c);
-                    rackCount[letter]++; // Backtrack
+                    rackCount[letter]++;
                 }
             }
         }
@@ -197,19 +197,18 @@ void HardStrategy::go(int r, int c, bool isHorizontal, const Board& board,
     }
 }
 
-// --- HÀM MỚI: Kiểm tra từ vuông góc ---
 bool HardStrategy::crossCheck(int r, int c, char letter, bool isHorizontal, const Board& board) {
     std::string crossWord = getCrossWord(r, c, letter, isHorizontal, board);
     return crossWord.length() <= 1 || dictionary_.contains(crossWord);
 }
 
 std::string HardStrategy::getCrossWord(int r, int c, char letter, bool isHorizontal, const Board& board) {
-    if (isHorizontal) { // Chơi ngang, kiểm tra dọc
+    if (isHorizontal) { 
         std::string prefix, suffix;
         for (int i = r - 1; i >= 0 && board.hasTile(i, c); --i) prefix = board.getCell(i, c).tile.getLetter() + prefix;
         for (int i = r + 1; i < 15 && board.hasTile(i, c); ++i) suffix += board.getCell(i, c).tile.getLetter();
         return prefix + letter + suffix;
-    } else { // Chơi dọc, kiểm tra ngang
+    } else {
         std::string prefix, suffix;
         for (int i = c - 1; i >= 0 && board.hasTile(r, i); --i) prefix = board.getCell(r, i).tile.getLetter() + prefix;
         for (int i = c + 1; i < 15 && board.hasTile(r, i); ++i) suffix += board.getCell(r, i).tile.getLetter();

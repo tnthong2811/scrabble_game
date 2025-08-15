@@ -45,6 +45,9 @@ bool GameUI::init() {
 
     if (!window_ || !renderer_ || !fontNormal_ || !fontSmall_ || !fontBig_) return false;
 
+    preRenderTileTextures();
+    preRenderLabelTextures();
+
     defineLayout();
     return true;
 }
@@ -149,13 +152,20 @@ void GameUI::defineLayout() {
 
 void GameUI::close() {
     TTF_CloseFont(fontNormal_);
+    TTF_CloseFont(fontTile_);
+    TTF_CloseFont(fontHistory_);
     TTF_CloseFont(fontSmall_);
     TTF_CloseFont(fontBig_);
+    TTF_CloseFont(fontIVL_);
     TTF_CloseFont(fontTitle_);
     TTF_CloseFont(fontCoords_);
-    if (gameOverBackgroundTexture_) {
-        SDL_DestroyTexture(gameOverBackgroundTexture_);
-    }
+
+    for (auto& p : tileTextureCache_) SDL_DestroyTexture(p.second);
+    for (auto& p : labelTextureCache_) SDL_DestroyTexture(p.second);
+
+    if (menuImageTexture_) SDL_DestroyTexture(menuImageTexture_);
+    if (gameOverBackgroundTexture_) SDL_DestroyTexture(gameOverBackgroundTexture_);
+
     SDL_DestroyRenderer(renderer_);
     SDL_DestroyWindow(window_);
     IMG_Quit();
@@ -848,6 +858,16 @@ void GameUI::render() {
     SDL_RenderPresent(renderer_);
 }
 
+void GameUI::renderLabel(const std::string& label, int x, int y, int w, int h) {
+    auto it = labelTextureCache_.find(label);
+    if (it != labelTextureCache_.end()) {
+        SDL_Rect dst = { x, y, w, h };
+        SDL_RenderCopy(renderer_, it->second, NULL, &dst);
+    } else {
+        renderText(label, x, y, w, h, fontNormal_, COLOR_TEXT_DARK);
+    }
+}
+
 void GameUI::renderBoard() {
     const int COORDS_GUTTER = 25; 
 
@@ -916,7 +936,7 @@ void GameUI::renderBoard() {
                     SDL_RenderFillRect(renderer_, &cellRect);
                 }
                 if (!label.empty()) {
-                    renderText(label, cellRect.x, cellRect.y, cellRect.w, cellRect.h, fontNormal_, COLOR_TEXT_DARK);
+                    renderLabel(label, cellRect.x, cellRect.y, cellRect.w, cellRect.h);
                 }
             }
         }
@@ -924,8 +944,8 @@ void GameUI::renderBoard() {
 
     // 3. Cuối cùng, vẽ các ô chữ người chơi đang đặt tạm
     for (const auto& placedTile : currentMoveTiles_) {
-        int x = boardRect_.x + placedTile.boardCol * CELL_SIZE;
-        int y = boardRect_.y + placedTile.boardRow * CELL_SIZE;
+        int x = boardRect_.x + placedTile.boardCol * CELL_SIZE + 1;
+        int y = boardRect_.y + placedTile.boardRow * CELL_SIZE + 1;
         renderTile(placedTile.tile, x, y);
     }
 }
@@ -1000,19 +1020,16 @@ void GameUI::renderRack() {
 }
 
 void GameUI::renderTile(const Tile& tile, int x, int y) {
-    SDL_Rect tileRect = { x + 1, y + 1, TILE_SIZE, TILE_SIZE };
-    SDL_SetRenderDrawColor(renderer_, COLOR_TILE.r, COLOR_TILE.g, COLOR_TILE.b, 255);
-    SDL_RenderFillRect(renderer_, &tileRect);
-
-    SDL_SetRenderDrawColor(renderer_, 80, 50, 20, 255);
-    SDL_RenderDrawRect(renderer_, &tileRect);
-
-    if (!tile.isBlank()) {
-        std::string letterStr(1, tile.getLetter());
-        renderText(letterStr, tileRect.x, tileRect.y, tileRect.w, tileRect.h - 5, fontTile_, COLOR_TEXT_DARK);
-        
-        std::string valueStr = std::to_string(tile.getValue());
-        renderText(valueStr, tileRect.x + tileRect.w - 12, tileRect.y + tileRect.h - 16, fontSmall_, COLOR_TEXT_DARK);
+    char key = tile.isBlank() ? '?' : tile.getLetter();
+    auto it = tileTextureCache_.find(key);
+    if (it != tileTextureCache_.end()) {
+        SDL_Rect dst = { x, y, TILE_SIZE, TILE_SIZE };
+        SDL_RenderCopy(renderer_, it->second, NULL, &dst);
+    } else {
+        SDL_Texture* tex = createTileTexture(tile);
+        SDL_Rect dst = { x, y, TILE_SIZE, TILE_SIZE };
+        SDL_RenderCopy(renderer_, tex, NULL, &dst);
+        SDL_DestroyTexture(tex);
     }
 }
 
@@ -1091,7 +1108,7 @@ void GameUI::renderSuggestionPanel(const SDL_Rect& rect) {
 
         Move move = play.getMove();
         std::string coords = "(" + std::to_string(move.getCol() + 1) + "," + std::to_string(move.getRow() + 1) + ")";
-        std::string direction = (move.getDirection() == Move::Direction::HORIZONTAL) ? " ngang" : " doc";
+        std::string direction = (move.getDirection() == Move::Direction::HORIZONTAL) ? " (HORIZONTAL)" : " (VERTICAL)";
         
         std::string text = move.getWord() + " " + coords + direction;
         
@@ -1210,4 +1227,90 @@ void GameUI::renderLoading() {
 
     SDL_Color loadingColor = {255, 255, 255, 255}; 
     renderText("LOADING...", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, fontTitle_, loadingColor);
+}
+
+SDL_Texture* GameUI::createTileTexture(const Tile& tile) {
+    SDL_Texture* tex = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, TILE_SIZE, TILE_SIZE);
+    SDL_SetRenderTarget(renderer_, tex);
+    SDL_SetRenderDrawColor(renderer_, COLOR_TILE.r, COLOR_TILE.g, COLOR_TILE.b, 255);
+    SDL_RenderFillRect(renderer_, NULL);
+    SDL_SetRenderDrawColor(renderer_, 80, 50, 20, 255);
+    SDL_RenderDrawRect(renderer_, NULL);
+
+    if (!tile.isBlank()) {
+        std::string letter(1, tile.getLetter());
+        SDL_Surface* letterSurf = TTF_RenderText_Blended(fontTile_, letter.c_str(), COLOR_TEXT_DARK);
+        if (letterSurf) {
+            SDL_Texture* letterTex = SDL_CreateTextureFromSurface(renderer_, letterSurf);
+            int w = letterSurf->w;
+            int h = letterSurf->h;
+            SDL_Rect dst = { (TILE_SIZE - w) / 2, (TILE_SIZE - h) / 2 - 5, w, h };  // Center, y up 5px for balance
+            SDL_RenderCopy(renderer_, letterTex, NULL, &dst);
+            SDL_DestroyTexture(letterTex);
+            SDL_FreeSurface(letterSurf);
+        }
+
+        std::string value = std::to_string(tile.getValue());
+        SDL_Surface* valueSurf = TTF_RenderText_Blended(fontSmall_, value.c_str(), COLOR_TEXT_DARK);
+        if (valueSurf) {
+            SDL_Texture* valueTex = SDL_CreateTextureFromSurface(renderer_, valueSurf);
+            int w = valueSurf->w;
+            int h = valueSurf->h;
+            SDL_Rect dst = { TILE_SIZE - w - 4, TILE_SIZE - h - 4, w, h };  // Bottom right, padding 4px
+            SDL_RenderCopy(renderer_, valueTex, NULL, &dst);
+            SDL_DestroyTexture(valueTex);
+            SDL_FreeSurface(valueSurf);
+        }
+    }
+
+    SDL_SetRenderTarget(renderer_, NULL);
+    return tex;
+}
+
+SDL_Texture* GameUI::createLabelTexture(const std::string& label) {
+    SDL_Texture* tex = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, CELL_SIZE - 2, CELL_SIZE - 2);
+    SDL_SetRenderTarget(renderer_, tex);
+    
+    if (label == "3W") {
+        SDL_SetRenderDrawColor(renderer_, 211, 47, 47, 255); 
+    } else if (label == "2W") {
+        SDL_SetRenderDrawColor(renderer_, 255, 138, 128, 255); 
+    } else if (label == "3L") {
+        SDL_SetRenderDrawColor(renderer_, 30, 136, 229, 255); 
+    } else if (label == "2L") {
+        SDL_SetRenderDrawColor(renderer_, 129, 212, 250, 255); 
+    } else {
+        SDL_SetRenderDrawColor(renderer_, COLOR_NORMAL_CELL.r, COLOR_NORMAL_CELL.g, COLOR_NORMAL_CELL.b, 255); // Màu mặc định
+    }
+    SDL_RenderClear(renderer_);
+
+    SDL_Surface* surf = TTF_RenderText_Blended(fontNormal_, label.c_str(), COLOR_TEXT_DARK);
+    if (surf) {
+        SDL_Texture* textTex = SDL_CreateTextureFromSurface(renderer_, surf);
+        int w = surf->w;
+        int h = surf->h;
+        SDL_Rect dst = { (CELL_SIZE - 2 - w) / 2, (CELL_SIZE - 2 - h) / 2, w, h }; // Căn giữa
+        SDL_RenderCopy(renderer_, textTex, NULL, &dst);
+        SDL_DestroyTexture(textTex);
+        SDL_FreeSurface(surf);
+    }
+
+    SDL_SetRenderTarget(renderer_, NULL);
+    return tex;
+}
+
+void GameUI::preRenderTileTextures() {
+    for (char ch = 'A'; ch <= 'Z'; ++ch) {
+        Tile tile(ch, false);
+        tileTextureCache_[ch] = createTileTexture(tile);
+    }
+    Tile blank('?', true);
+    tileTextureCache_['?'] = createTileTexture(blank);
+}
+
+void GameUI::preRenderLabelTextures() {
+    std::vector<std::string> labels = {"3W", "2W", "3L", "2L"};
+    for (auto& label : labels) {
+        labelTextureCache_[label] = createLabelTexture(label);
+    }
 }
