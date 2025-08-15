@@ -164,7 +164,7 @@ void GameUI::close() {
     TTF_CloseFont(fontCoords_);
     TTF_CloseFont(fontDraggedTile_);
     TTF_CloseFont(fontDraggedSmall_);
-    
+
     for (auto& p : draggedTileTextureCache_) SDL_DestroyTexture(p.second);
     for (auto& p : tileTextureCache_) SDL_DestroyTexture(p.second);
     for (auto& p : labelTextureCache_) SDL_DestroyTexture(p.second);
@@ -1112,7 +1112,7 @@ void GameUI::renderSuggestionPanel(const SDL_Rect& rect) {
     const auto& suggestions = game_.getSuggestions();
 
     if (suggestions.empty()) {
-        renderText("No moves available.", rect.x + 15, rect.y + 40, 0, 0, fontHistory_, {180, 180, 180, 255});
+        renderText("No moves available.", rect.x, rect.y + 40, rect.w, 20, fontHistory_, {180, 180, 180, 255});
         return;
     }
 
