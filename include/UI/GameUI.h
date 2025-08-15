@@ -35,6 +35,7 @@ private:
     SDL_Renderer* renderer_ = nullptr;
     SDL_Texture* createTileTexture(const Tile& tile);
     SDL_Texture* createLabelTexture(const std::string& label);
+    SDL_Texture* createDraggedTileTexture(const Tile& tile);
     TTF_Font* fontNormal_ = nullptr;
     TTF_Font* fontTile_ = nullptr;
     TTF_Font* fontSmall_ = nullptr;
@@ -99,6 +100,9 @@ private:
     std::vector<int> tilesToSwapIndices_;
     std::unordered_map<char, SDL_Texture*> tileTextureCache_;  
     std::unordered_map<std::string, SDL_Texture*> labelTextureCache_;
+    std::map<char, SDL_Texture*> draggedTileTextureCache_;
+    TTF_Font* fontDraggedTile_ = nullptr;
+    TTF_Font* fontDraggedSmall_ = nullptr;
 
     bool init();
     void defineLayout();
@@ -124,6 +128,7 @@ private:
     void renderHistoryPanel(const SDL_Rect& rect);
     void renderTileBagPanel(const SDL_Rect& rect);
     void renderSuggestionPanel(const SDL_Rect& rect);
+    void preRenderDraggedTileTextures();
     void renderLoading();
     void handleGameOverEvents();
     void handleLoadingEvents();

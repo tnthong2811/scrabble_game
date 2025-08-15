@@ -21,6 +21,7 @@ void Game::startNewGame(int aiCount, int gameDurationMinutes, AI::Difficulty dif
         state_ = State::GAME_OVER; return;
     }
     ai_ = std::make_unique<AI::ScrabbleAI>(difficulty, dictionary_);
+    suggestion_ai_ = std::make_unique<AI::ScrabbleAI>(AI::Difficulty::MEDIUM, dictionary_);
     setupPlayers(aiCount);
     for (auto& player : players_) { if(player) refillRack(*player); }
     state_ = State::PLAYING;
@@ -118,7 +119,7 @@ void Game::nextTurn() {
     if (currentPlayerId_ == 0) {
         Player* humanPlayer = getPlayer(0);
         if (humanPlayer) {
-            currentSuggestions_ = ai_->generateTopPlays(board_, humanPlayer->getRack(), 5);
+            currentSuggestions_ = suggestion_ai_->generateTopPlays(board_, humanPlayer->getRack(), 6);
         }
     } else {
         currentSuggestions_.clear();

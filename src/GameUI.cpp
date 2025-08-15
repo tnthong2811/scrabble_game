@@ -37,6 +37,8 @@ bool GameUI::init() {
     fontIVL_ = TTF_OpenFont("assets/font/Pixel.ttf", 50);
     fontTitle_ = TTF_OpenFont("assets/font/Pixel.ttf", 96);
     fontCoords_ = TTF_OpenFont("assets/font/Pixel.ttf", 12);
+    fontDraggedTile_ = TTF_OpenFont("assets/font/Pixel.ttf", 22); 
+    fontDraggedSmall_ = TTF_OpenFont("assets/font/Pixel.ttf", 12);
 
     menuImageTexture_ = IMG_LoadTexture(renderer_, "assets/image/menuimage.png");
     if (!menuImageTexture_) {
@@ -44,8 +46,9 @@ bool GameUI::init() {
     }
 
     if (!window_ || !renderer_ || !fontNormal_ || !fontSmall_ || !fontBig_) return false;
-
+    
     preRenderTileTextures();
+    preRenderDraggedTileTextures();
     preRenderLabelTextures();
 
     defineLayout();
@@ -159,7 +162,10 @@ void GameUI::close() {
     TTF_CloseFont(fontIVL_);
     TTF_CloseFont(fontTitle_);
     TTF_CloseFont(fontCoords_);
-
+    TTF_CloseFont(fontDraggedTile_);
+    TTF_CloseFont(fontDraggedSmall_);
+    
+    for (auto& p : draggedTileTextureCache_) SDL_DestroyTexture(p.second);
     for (auto& p : tileTextureCache_) SDL_DestroyTexture(p.second);
     for (auto& p : labelTextureCache_) SDL_DestroyTexture(p.second);
 
@@ -515,36 +521,48 @@ void GameUI::renderGame() {
     renderRack();
 
     if (isDragging_) {
+        // Tính toán ô đang được chuột di chuyển qua
+        bool isOverBoard = (mousePos_.x >= boardRect_.x && mousePos_.x < boardRect_.x + boardRect_.w &&
+                            mousePos_.y >= boardRect_.y && mousePos_.y < boardRect_.y + boardRect_.h);
+        if (isOverBoard) {
+            int col = (mousePos_.x - boardRect_.x) / CELL_SIZE;
+            int row = (mousePos_.y - boardRect_.y) / CELL_SIZE;
+            bool isOccupied = game_.getBoard().hasTile(row, col);
+            for (const auto& placedTile : currentMoveTiles_) {
+                if (placedTile.boardRow == row && placedTile.boardCol == col) {
+                    isOccupied = true;
+                    break;
+                }
+            }
+
+            // Vẽ hiệu ứng mờ nếu ô trống
+            if (!isOccupied) {
+                SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
+                SDL_SetRenderDrawColor(renderer_, 0, 173, 181, 100); // Xanh lam nhạt, alpha 100
+                SDL_Rect highlightRect = { boardRect_.x + col * CELL_SIZE + 1, boardRect_.y + row * CELL_SIZE + 1, CELL_SIZE - 2, CELL_SIZE - 2 };
+                SDL_RenderFillRect(renderer_, &highlightRect);
+                SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_NONE);
+            }
+        }
+
+        const float scale = 1.1f;
+        int draggedSize = static_cast<int>(TILE_SIZE * scale);
         SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 100); 
-        SDL_Rect shadowRect = {
-            mousePos_.x - dragOffset_.x + 3,
-            mousePos_.y - dragOffset_.y + 3,
-            static_cast<int>(TILE_SIZE * 1.1f), 
-            static_cast<int>(TILE_SIZE * 1.1f)
-        };
+        SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 100);
+        SDL_Rect shadowRect = { mousePos_.x - dragOffset_.x + 3, mousePos_.y - dragOffset_.y + 3, draggedSize, draggedSize };
         SDL_RenderFillRect(renderer_, &shadowRect);
         SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_NONE);
 
-        // Vẽ tile kéo với kích thước phóng to
-        SDL_Rect tileRect = {
-            mousePos_.x - dragOffset_.x,
-            mousePos_.y - dragOffset_.y,
-            static_cast<int>(TILE_SIZE * 1.1f), 
-            static_cast<int>(TILE_SIZE * 1.1f)
-        };
-        SDL_SetRenderDrawColor(renderer_, COLOR_TILE.r, COLOR_TILE.g, COLOR_TILE.b, 255);
-        SDL_RenderFillRect(renderer_, &tileRect);
-
-        SDL_SetRenderDrawColor(renderer_, 80, 50, 20, 255);
-        SDL_RenderDrawRect(renderer_, &tileRect);
-
-        if (!draggedTile_.isBlank()) {
-            std::string letterStr(1, draggedTile_.getLetter());
-            renderText(letterStr, tileRect.x, tileRect.y, tileRect.w, tileRect.h - 5, fontTile_, COLOR_TEXT_DARK);
-            
-            std::string valueStr = std::to_string(draggedTile_.getValue());
-            renderText(valueStr, tileRect.x + tileRect.w - 12, tileRect.y + tileRect.h - 16, fontSmall_, COLOR_TEXT_DARK);
+        SDL_Rect tileRect = { mousePos_.x - dragOffset_.x, mousePos_.y - dragOffset_.y, draggedSize, draggedSize };
+        char key = draggedTile_.isBlank() ? '?' : draggedTile_.getLetter();
+        auto it = draggedTileTextureCache_.find(key);
+        if (it != draggedTileTextureCache_.end()) {
+            SDL_RenderCopy(renderer_, it->second, NULL, &tileRect);
+        } else {
+            SDL_SetRenderDrawColor(renderer_, COLOR_TILE.r, COLOR_TILE.g, COLOR_TILE.b, 255);
+            SDL_RenderFillRect(renderer_, &tileRect);
+            SDL_SetRenderDrawColor(renderer_, 80, 50, 20, 255);
+            SDL_RenderDrawRect(renderer_, &tileRect);
         }
     }
 
@@ -567,19 +585,18 @@ void GameUI::renderGame() {
                 textH + padding * 2               
             };
 
-            // Vẽ nền đen với độ mờ
             SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
-            SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255); 
+            SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
             SDL_RenderFillRect(renderer_, &backgroundRect);
             SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_NONE);
 
-            // Vẽ chữ INVALID MOVE
             renderText("INVALID MOVE", x, y, w, h, fontIVL_, red);
         } else {
             invalidMoveTimestamp_ = 0;
         }
     }
-
+    
+    SDL_RenderFlush(renderer_);
     SDL_RenderPresent(renderer_);
 }
 
@@ -902,8 +919,6 @@ void GameUI::renderBoard() {
 
             const auto& cell = board.getCell(r, c);
 
-            // *** LOGIC ĐÃ ĐƯỢC SẮP XẾP LẠI HOÀN TOÀN ***
-
             // ƯU TIÊN 1: Nếu ô đã có chữ, hãy vẽ ô chữ đó.
             if (cell.hasTile()) {
                 renderTile(cell.tile, cellRect.x, cellRect.y);
@@ -1039,7 +1054,6 @@ void GameUI::renderTileBagPanel(const SDL_Rect& rect) {
     renderText("Tile Bag", rect.x, rect.y + 10, rect.w, 20, fontNormal_, COLOR_TEXT_LIGHT);
     std::string remaining = "Remaining: " + std::to_string(game_.getTileBag().remainingTiles());
     renderText(remaining, rect.x, rect.y + 35, rect.w, 20, fontNormal_, COLOR_TEXT_LIGHT);
-    // (Ở đây bạn có thể thêm logic để vẽ chi tiết các chữ cái còn lại)
 }
 
 void GameUI::renderHistoryPanel(const SDL_Rect& rect) {
@@ -1313,4 +1327,54 @@ void GameUI::preRenderLabelTextures() {
     for (auto& label : labels) {
         labelTextureCache_[label] = createLabelTexture(label);
     }
+}
+
+SDL_Texture* GameUI::createDraggedTileTexture(const Tile& tile) {
+    const float scale = 1.1f;
+    int draggedSize = static_cast<int>(TILE_SIZE * scale);
+    SDL_Texture* tex = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, draggedSize, draggedSize);
+    SDL_SetRenderTarget(renderer_, tex);
+    SDL_SetRenderDrawColor(renderer_, COLOR_TILE.r, COLOR_TILE.g, COLOR_TILE.b, 255);
+    SDL_RenderClear(renderer_);
+    SDL_SetRenderDrawColor(renderer_, 80, 50, 20, 255);
+    SDL_Rect fullRect = {0, 0, draggedSize, draggedSize};
+    SDL_RenderDrawRect(renderer_, &fullRect);
+
+    if (!tile.isBlank()) {
+        std::string letter(1, tile.getLetter());
+        SDL_Surface* letterSurf = TTF_RenderText_Blended(fontDraggedTile_, letter.c_str(), COLOR_TEXT_DARK);
+        if (letterSurf) {
+            SDL_Texture* letterTex = SDL_CreateTextureFromSurface(renderer_, letterSurf);
+            int w = letterSurf->w;
+            int h = letterSurf->h;
+            SDL_Rect dst = { (draggedSize - w) / 2, (draggedSize - h) / 2 - static_cast<int>(5 * scale), w, h };
+            SDL_RenderCopy(renderer_, letterTex, NULL, &dst);
+            SDL_DestroyTexture(letterTex);
+            SDL_FreeSurface(letterSurf);
+        }
+
+        std::string value = std::to_string(tile.getValue());
+        SDL_Surface* valueSurf = TTF_RenderText_Blended(fontDraggedSmall_, value.c_str(), COLOR_TEXT_DARK);
+        if (valueSurf) {
+            SDL_Texture* valueTex = SDL_CreateTextureFromSurface(renderer_, valueSurf);
+            int w = valueSurf->w;
+            int h = valueSurf->h;
+            SDL_Rect dst = { draggedSize - w - static_cast<int>(4 * scale), draggedSize - h - static_cast<int>(4 * scale), w, h };
+            SDL_RenderCopy(renderer_, valueTex, NULL, &dst);
+            SDL_DestroyTexture(valueTex);
+            SDL_FreeSurface(valueSurf);
+        }
+    }
+
+    SDL_SetRenderTarget(renderer_, NULL);
+    return tex;
+}
+
+void GameUI::preRenderDraggedTileTextures() {
+    for (char ch = 'A'; ch <= 'Z'; ++ch) {
+        Tile tile(ch, false);
+        draggedTileTextureCache_[ch] = createDraggedTileTexture(tile);
+    }
+    Tile blank('?', true);
+    draggedTileTextureCache_['?'] = createDraggedTileTexture(blank);
 }

@@ -57,6 +57,7 @@ private:
     TileBag tileBag_;
     std::vector<std::unique_ptr<Player>> players_;
     std::unique_ptr<AI::ScrabbleAI> ai_;
+    std::unique_ptr<AI::ScrabbleAI> suggestion_ai_;
     std::vector<TurnRecord> turnHistory_;
     std::vector<Play> currentSuggestions_; 
     int currentPlayerId_;
