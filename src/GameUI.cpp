@@ -1526,7 +1526,7 @@ void GameUI::renderBlankSelectionPanel() {
     SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_NONE);
 
     // 2. Vẽ panel chính
-    SDL_Rect panelRect = { SCREEN_WIDTH / 2 - 250, SCREEN_HEIGHT / 2 - 150, 500, 300 };
+    SDL_Rect panelRect = { SCREEN_WIDTH / 2 - 300, SCREEN_HEIGHT / 2 - 150, 600, 300 };
     SDL_SetRenderDrawColor(renderer_, COLOR_SIDEBAR.r, COLOR_SIDEBAR.g, COLOR_SIDEBAR.b, 255);
     SDL_RenderFillRect(renderer_, &panelRect);
     SDL_SetRenderDrawColor(renderer_, 20, 20, 20, 255);
