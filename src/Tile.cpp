@@ -28,21 +28,24 @@ Tile::Tile(char letter, bool isBlank) : isBlank_(isBlank) {
 }
 
 // Constructor phụ
-Tile::Tile(char letter, int value, bool isBlank)
-    : letter_(std::toupper(letter)), value_(value), isBlank_(isBlank), blankLetter_('\0') {
-    if (isBlank) {
-        this->letter_ = '?';
-        this->value_ = 0;
+Tile::Tile(char letter, int value, bool isBlank) 
+    : letter_(letter), value_(value), isBlank_(isBlank), assignedLetter_(' ') {} // Khởi tạo assignedLetter_
+
+char Tile::getLetter() const {
+    // Nếu là quân trắng và đã được gán chữ, trả về chữ được gán
+    if (isBlank_ && assignedLetter_ != ' ') {
+        return assignedLetter_;
+    }
+    // Ngược lại, trả về chữ gốc
+    return letter_;
+}
+
+void Tile::assignLetter(char c) {
+    if (isBlank_) {
+        assignedLetter_ = toupper(c);
     }
 }
 
-// Trả về chữ cái mà tile đang đại diện
-char Tile::getLetter() const {
-    if (isBlank_ && blankLetter_ != '\0') {
-        return blankLetter_; // Nếu là blank và đã được gán, trả về chữ được gán
-    }
-    return letter_; // Ngược lại, trả về chữ gốc
-}
 
 // Trả về điểm số
 int Tile::getValue() const {

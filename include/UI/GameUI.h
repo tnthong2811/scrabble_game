@@ -28,6 +28,7 @@ private:
         LOADING,
         PLAYING,
         SELECTING_SWAP,
+        CHOOSING_BLANK_LETTER,
         GAME_OVER
     };
 
@@ -86,6 +87,9 @@ private:
     int loadingGameTime_ = 15; 
     AI::Difficulty loadingDifficulty_ = AI::Difficulty::EASY; 
     MoveResult currentMoveResult_;
+    int blankPlacementRow_;
+    int blankPlacementCol_;
+    int blankOriginalRackIndex_;
 
     bool isDragging_ = false;
     int draggedRackIndex_ = -1;
@@ -124,6 +128,9 @@ private:
     void renderRack();
     void renderSidebar();
     void renderButtons();
+    void renderBlankSelectionPanel();
+    void handleBlankSelectionEvents();
+    bool isTileTemporarilyPlacedAt(int r, int c) const;
     void renderTimerPanel(const SDL_Rect& rect);
     std::string formatTime(Uint32 ms);
     void renderText(const std::string& text, int x, int y, TTF_Font* font, SDL_Color color);

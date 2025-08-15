@@ -491,6 +491,29 @@ void GameUI::handleGameEvents() {
         } 
         else if (e.type == SDL_MOUSEBUTTONUP) {
             if (isDragging_) {
+                if (draggedTile_.isBlank()) {
+                    int mouseX, mouseY;
+                    SDL_GetMouseState(&mouseX, &mouseY);
+                    if (mouseX >= boardRect_.x && mouseX < boardRect_.x + boardRect_.w &&
+                        mouseY >= boardRect_.y && mouseY < boardRect_.y + boardRect_.h)
+                    {
+                        int col = (mouseX - boardRect_.x) / CELL_SIZE;
+                        int row = (mouseY - boardRect_.y) / CELL_SIZE;
+
+                        // Chỉ hiện bảng chọn nếu thả vào ô trống
+                        if (!game_.getBoard().hasTile(row, col) && !isTileTemporarilyPlacedAt(row, col)) {
+                            // Lưu lại bối cảnh và chuyển sang trạng thái chọn chữ
+                            blankPlacementRow_ = row;
+                            blankPlacementCol_ = col;
+                            blankOriginalRackIndex_ = draggedRackIndex_;
+                            currentState_ = UIState::CHOOSING_BLANK_LETTER;
+                            
+                            isDragging_ = false; // Dừng kéo
+                            return; // Thoát khỏi hàm để không chạy logic bên dưới
+                        }
+                    }
+                }
+
                 bool dropped_successfully = false;
                 if (mousePos_.x >= boardRect_.x && mousePos_.x < boardRect_.x + boardRect_.w && 
                     mousePos_.y >= boardRect_.y && mousePos_.y < boardRect_.y + boardRect_.h) {
@@ -606,9 +629,6 @@ void GameUI::renderGame() {
             invalidMoveTimestamp_ = 0;
         }
     }
-    
-    SDL_RenderFlush(renderer_);
-    SDL_RenderPresent(renderer_);
 }
 
 void GameUI::handleSwapSelectionEvents() {
@@ -863,9 +883,9 @@ void GameUI::handleEvents() {
         handleSwapSelectionEvents();
     } else if (currentState_ == UIState::GAME_OVER) {
         handleGameOverEvents();
-    } else if (currentState_ == UIState::LOADING) {
-        handleLoadingEvents();
-    } else {
+    } else if (currentState_ == UIState::CHOOSING_BLANK_LETTER) { 
+        handleBlankSelectionEvents();
+    } else { 
         handleGameEvents();
     }
 }
@@ -882,6 +902,9 @@ void GameUI::render() {
         renderLoading();
     } else {
         renderGame();
+        if (currentState_ == UIState::CHOOSING_BLANK_LETTER) { 
+            renderBlankSelectionPanel(); 
+        }
     }
     SDL_RenderPresent(renderer_);
 }
@@ -1081,16 +1104,22 @@ void GameUI::renderRack() {
 }
 
 void GameUI::renderTile(const Tile& tile, int x, int y) {
+    SDL_Rect tileRect = { x, y, TILE_SIZE, TILE_SIZE };
     char key = tile.isBlank() ? '?' : tile.getLetter();
     auto it = tileTextureCache_.find(key);
     if (it != tileTextureCache_.end()) {
-        SDL_Rect dst = { x, y, TILE_SIZE, TILE_SIZE };
-        SDL_RenderCopy(renderer_, it->second, NULL, &dst);
+        SDL_RenderCopy(renderer_, it->second, NULL, &tileRect);
     } else {
         SDL_Texture* tex = createTileTexture(tile);
-        SDL_Rect dst = { x, y, TILE_SIZE, TILE_SIZE };
-        SDL_RenderCopy(renderer_, tex, NULL, &dst);
+        SDL_RenderCopy(renderer_, tex, NULL, &tileRect);
         SDL_DestroyTexture(tex);
+    }
+
+    // Chỉ vẽ chữ nếu là blank tile đã được gán chữ (không vẽ lại cho tile thông thường)
+    if (tile.isBlank() && tile.getLetter() != ' ') {
+        std::string letterStr(1, tile.getLetter());
+        SDL_Color letterColor = {120, 120, 120, 255};  // Màu xám để phân biệt blank
+        renderText(letterStr, tileRect.x, tileRect.y, tileRect.w, tileRect.h - 5, fontTile_, letterColor);
     }
 }
 
@@ -1486,4 +1515,92 @@ void GameUI::renderFilledCircle(int centerX, int centerY, int radius, SDL_Color 
             }
         }
     }
+}
+
+void GameUI::renderBlankSelectionPanel() {
+    // 1. Vẽ một lớp nền đen mờ
+    SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 180);
+    SDL_Rect overlay = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+    SDL_RenderFillRect(renderer_, &overlay);
+    SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_NONE);
+
+    // 2. Vẽ panel chính
+    SDL_Rect panelRect = { SCREEN_WIDTH / 2 - 250, SCREEN_HEIGHT / 2 - 150, 500, 300 };
+    SDL_SetRenderDrawColor(renderer_, COLOR_SIDEBAR.r, COLOR_SIDEBAR.g, COLOR_SIDEBAR.b, 255);
+    SDL_RenderFillRect(renderer_, &panelRect);
+    SDL_SetRenderDrawColor(renderer_, 20, 20, 20, 255);
+    SDL_RenderDrawRect(renderer_, &panelRect);
+
+    // 3. Vẽ tiêu đề
+    renderText("Choose a Letter", panelRect.x, panelRect.y + 20, panelRect.w, 40, fontBig_, COLOR_TEXT_LIGHT);
+
+    // 4. Vẽ các nút chữ cái
+    const int BUTTON_SIZE = 35;
+    const int BUTTON_SPACING = 5;
+    int startX = panelRect.x + (panelRect.w - (13 * (BUTTON_SIZE + BUTTON_SPACING))) / 2;
+    int startY = panelRect.y + 100;
+
+    for (int i = 0; i < 26; ++i) {
+        char letter = 'A' + i;
+        int row = i / 13;
+        int col = i % 13;
+
+        SDL_Rect buttonRect = { startX + col * (BUTTON_SIZE + BUTTON_SPACING), startY + row * (BUTTON_SIZE + BUTTON_SPACING + 10), BUTTON_SIZE, BUTTON_SIZE };
+        SDL_SetRenderDrawColor(renderer_, 80, 80, 90, 255);
+        SDL_RenderFillRect(renderer_, &buttonRect);
+        renderText(std::string(1, letter), buttonRect.x, buttonRect.y, buttonRect.w, buttonRect.h, fontTile_, COLOR_TEXT_LIGHT);
+    }
+}
+
+void GameUI::handleBlankSelectionEvents() {
+    SDL_Event e;
+    while (SDL_PollEvent(&e) != 0) {
+        if (e.type == SDL_QUIT) {
+            running_ = false;
+        }
+        if (e.type == SDL_MOUSEBUTTONDOWN) {
+            int mouseX, mouseY;
+            SDL_GetMouseState(&mouseX, &mouseY);
+
+            // Logic kiểm tra click vào nút chữ cái
+            const int BUTTON_SIZE = 35;
+            const int BUTTON_SPACING = 5;
+            SDL_Rect panelRect = { SCREEN_WIDTH / 2 - 250, SCREEN_HEIGHT / 2 - 150, 500, 300 };
+            int startX = panelRect.x + (panelRect.w - (13 * (BUTTON_SIZE + BUTTON_SPACING))) / 2;
+            int startY = panelRect.y + 100;
+
+            for (int i = 0; i < 26; ++i) {
+                char letter = 'A' + i;
+                int row = i / 13;
+                int col = i % 13;
+                SDL_Rect buttonRect = { startX + col * (BUTTON_SIZE + BUTTON_SPACING), startY + row * (BUTTON_SIZE + BUTTON_SPACING + 10), BUTTON_SIZE, BUTTON_SIZE };
+
+                if (mouseX >= buttonRect.x && mouseX < buttonRect.x + buttonRect.w &&
+                    mouseY >= buttonRect.y && mouseY < buttonRect.y + buttonRect.h) {
+                    
+                    // Người chơi đã chọn một chữ
+                    Tile blankTile('?', 0, true); // Tạo quân trắng
+                    blankTile.assignLetter(letter); // Gán chữ cho nó
+
+                    // Thêm quân cờ đã được gán chữ vào danh sách đặt tạm
+                    currentMoveTiles_.push_back({blankTile, blankPlacementRow_, blankPlacementCol_, blankOriginalRackIndex_});
+                    
+                    // Quay lại trạng thái chơi game
+                    currentState_ = UIState::PLAYING;
+                    validateCurrentMove();
+                    return;
+                }
+            }
+        }
+    }
+}
+
+bool GameUI::isTileTemporarilyPlacedAt(int r, int c) const {
+    for (const auto& placedTile : currentMoveTiles_) {
+        if (placedTile.boardRow == r && placedTile.boardCol == c) {
+            return true;
+        }
+    }
+    return false;
 }

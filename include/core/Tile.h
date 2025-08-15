@@ -23,12 +23,14 @@ public:
     std::string toString() const;
     bool operator==(const Tile& other) const;
     static int getDefaultScore(char letter);
+    void assignLetter(char c);
 
 private:
     char letter_;
     int value_;
     bool isBlank_;
     char blankLetter_;
+    char assignedLetter_;
 
     static const std::map<char, int> DEFAULT_SCORES;
 };
