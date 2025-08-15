@@ -242,6 +242,15 @@ void GameUI::update() {
         currentState_ = UIState::GAME_OVER;
     }
 
+    int currentPlayerId = game_.getCurrentPlayerId();
+    if (lastKnownPlayerId_ == 0 && currentPlayerId != 0) {
+        if (!currentMoveTiles_.empty()) {
+            currentMoveTiles_.clear();
+            validateCurrentMove(); 
+        }
+    }
+    lastKnownPlayerId_ = currentPlayerId;
+
     if (currentState_ == UIState::GAME_OVER) {
         const float scale = 1.1f;
         int mouseX, mouseY;
@@ -385,6 +394,7 @@ void GameUI::handleGameEvents() {
             if (mouseX >= resetButtonRect_.x && mouseX < resetButtonRect_.x + resetButtonRect_.w &&
                 mouseY >= resetButtonRect_.y && mouseY < resetButtonRect_.y + resetButtonRect_.h) {
                 currentMoveTiles_.clear();
+                validateCurrentMove();
                 continue;
             }
             // Kiểm tra nút Skip
@@ -506,6 +516,7 @@ void GameUI::handleGameEvents() {
                 isDragging_ = false;
                 draggedRackIndex_ = -1;
                 draggedBoardTileIndex_ = -1;
+                validateCurrentMove();
             }
         }
     }
@@ -962,6 +973,41 @@ void GameUI::renderBoard() {
         int x = boardRect_.x + placedTile.boardCol * CELL_SIZE + 1;
         int y = boardRect_.y + placedTile.boardRow * CELL_SIZE + 1;
         renderTile(placedTile.tile, x, y);
+
+        // --- VIỀN XANH/ĐỎ ---
+        SDL_Rect borderRect = { x-1, y-1, TILE_SIZE+2, TILE_SIZE+2 };
+        if (currentMoveResult_.isValid) {
+            SDL_SetRenderDrawColor(renderer_, 34, 177, 76, 255); // Xanh lá
+        } else {
+            SDL_SetRenderDrawColor(renderer_, 237, 28, 36, 255); // Đỏ
+        }
+        // Vẽ 2 lần cho viền dày hơn
+        SDL_RenderDrawRect(renderer_, &borderRect);
+        borderRect.x--; borderRect.y--; borderRect.w+=2; borderRect.h+=2;
+        SDL_RenderDrawRect(renderer_, &borderRect);
+    }
+
+    // Vẽ điểm
+    if (currentMoveResult_.isValid && !currentMoveTiles_.empty()) {
+        // Lấy quân cờ ĐẦU TIÊN trong danh sách đã sắp xếp
+        const auto& firstTile = currentMoveTiles_.front();
+        
+        // Tọa độ tâm của vòng tròn (góc trên bên trái của ô)
+        int circleCenterX = boardRect_.x + firstTile.boardCol * CELL_SIZE;
+        int circleCenterY = boardRect_.y + firstTile.boardRow * CELL_SIZE;
+        int circleRadius = 10;
+
+        // Vẽ nền tròn
+        SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
+        renderFilledCircle(circleCenterX, circleCenterY, circleRadius, {34, 177, 76, 200});
+        SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_NONE);
+        
+        // Chuẩn bị chuỗi điểm
+        std::string scoreStr = std::to_string(currentMoveResult_.score);
+        
+        // Tạo một rect nhỏ xung quanh tâm để renderText có thể căn giữa
+        SDL_Rect textRect = {circleCenterX - circleRadius, circleCenterY - circleRadius, circleRadius*2, circleRadius*2};
+        renderText(scoreStr, textRect.x, textRect.y, textRect.w, textRect.h, fontSmall_, {255, 255, 255, 255}); // Màu trắng
     }
 }
 
@@ -1377,4 +1423,67 @@ void GameUI::preRenderDraggedTileTextures() {
     }
     Tile blank('?', true);
     draggedTileTextureCache_['?'] = createDraggedTileTexture(blank);
+}
+
+void GameUI::validateCurrentMove() {
+    if (currentMoveTiles_.empty()) {
+        currentMoveResult_ = MoveResult();
+        return;
+    }
+
+    std::sort(currentMoveTiles_.begin(), currentMoveTiles_.end(), [](const auto& a, const auto& b) {
+        if (a.boardRow != b.boardRow) return a.boardRow < b.boardRow;
+        return a.boardCol < b.boardCol;
+    });
+
+    bool isHorizontal = true;
+    if (currentMoveTiles_.size() > 1) {
+        isHorizontal = (currentMoveTiles_[0].boardRow == currentMoveTiles_[1].boardRow);
+    } else {
+        int r = currentMoveTiles_[0].boardRow;
+        int c = currentMoveTiles_[0].boardCol;
+        bool hNeighbor = game_.getBoard().hasTile(r, c - 1) || game_.getBoard().hasTile(r, c + 1);
+        bool vNeighbor = game_.getBoard().hasTile(r - 1, c) || game_.getBoard().hasTile(r + 1, c);
+        if (!hNeighbor && vNeighbor) {
+            isHorizontal = false;
+        }
+    }
+    
+    Board tempBoard = game_.getBoard();
+    for(const auto& placedTile : currentMoveTiles_) {
+        tempBoard.placeTileForAI(placedTile.boardRow, placedTile.boardCol, placedTile.tile);
+    }
+
+    int startRow = currentMoveTiles_.front().boardRow;
+    int startCol = currentMoveTiles_.front().boardCol;
+
+    if (isHorizontal) {
+        while (startCol > 0 && tempBoard.hasTile(startRow, startCol - 1)) startCol--;
+    } else {
+        while (startRow > 0 && tempBoard.hasTile(startRow - 1, startCol)) startRow--;
+    }
+    
+    std::string fullWord = tempBoard.getWordAt(startRow, startCol, isHorizontal);
+    
+    Move move(fullWord, startRow, startCol, isHorizontal ? Move::Direction::HORIZONTAL : Move::Direction::VERTICAL);
+    
+    Player* player = game_.getPlayer(0);
+    if (player) {
+        currentMoveResult_ = game_.getBoard().validateAndScoreMove(move, *player, game_.getDictionary());
+    } else {
+        currentMoveResult_ = MoveResult();
+    }
+}
+
+void GameUI::renderFilledCircle(int centerX, int centerY, int radius, SDL_Color color) {
+    SDL_SetRenderDrawColor(renderer_, color.r, color.g, color.b, color.a);
+    for (int w = 0; w < radius * 2; w++) {
+        for (int h = 0; h < radius * 2; h++) {
+            int dx = radius - w; // offset theo chiều ngang
+            int dy = radius - h; // offset theo chiều dọc
+            if ((dx*dx + dy*dy) <= (radius * radius)) {
+                SDL_RenderDrawPoint(renderer_, centerX + dx, centerY + dy);
+            }
+        }
+    }
 }

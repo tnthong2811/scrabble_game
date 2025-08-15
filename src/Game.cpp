@@ -332,6 +332,10 @@ void Game::updateTimers() {
     }
 }
 
+const TrieDictionary& Game::getDictionary() const {
+    return dictionary_;
+}
+
 Uint32 Game::getTotalTimeRemaining() const {
     return totalGameTimeRemaining_;
 }

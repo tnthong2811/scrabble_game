@@ -41,6 +41,7 @@ public:
     Player* getPlayer(int id) const;
     int getCurrentPlayerId() const;
     const TileBag& getTileBag() const;
+    const TrieDictionary& getDictionary() const;
     int getWinnerId() const;
 
     // Save/Load

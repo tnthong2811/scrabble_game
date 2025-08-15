@@ -85,6 +85,7 @@ private:
     bool isLoadingComplete_ = false;
     int loadingGameTime_ = 15; 
     AI::Difficulty loadingDifficulty_ = AI::Difficulty::EASY; 
+    MoveResult currentMoveResult_;
 
     bool isDragging_ = false;
     int draggedRackIndex_ = -1;
@@ -92,6 +93,7 @@ private:
     Tile draggedTile_;
     SDL_Point dragOffset_;
     SDL_Point originalDragPos_;
+    int lastKnownPlayerId_ = -1;
     SDL_Point mousePos_ = {0, 0}; 
     Uint32 invalidMoveTimestamp_ = 0;
     int draggedBoardTileIndex_ = -1;
@@ -116,7 +118,9 @@ private:
     void renderTile(const Tile& tile, int x, int y);
     void preRenderTileTextures();
     void preRenderLabelTextures();
+    void validateCurrentMove(); 
     void renderLabel(const std::string& label, int x, int y, int w, int h);
+    void renderFilledCircle(int centerX, int centerY, int radius, SDL_Color color);
     void renderRack();
     void renderSidebar();
     void renderButtons();
