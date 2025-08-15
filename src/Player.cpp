@@ -98,6 +98,9 @@ bool Player::swapTiles(TileBag& bag, const std::vector<char>& lettersToSwap) {
     rack_ = newRack; 
     bag.returnTiles(tilesToReturn);
 
+    //6. Sau khi trả lại, xáo trộn túi
+    bag.shuffle();
+
     return true;
 }
 
