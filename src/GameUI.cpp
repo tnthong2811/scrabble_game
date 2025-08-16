@@ -500,6 +500,11 @@ void GameUI::handleGameEvents() {
                         int col = (mouseX - boardRect_.x) / CELL_SIZE;
                         int row = (mouseY - boardRect_.y) / CELL_SIZE;
 
+                        if (!game_.getBoard().isValidPosition(row, col)) {  // Add this to prevent invalid row/col
+                            isDragging_ = false;
+                            return; // Thoát, không xử lý thả
+                        }
+
                         // Chỉ hiện bảng chọn nếu thả vào ô trống
                         if (!game_.getBoard().hasTile(row, col) && !isTileTemporarilyPlacedAt(row, col)) {
                             // Lưu lại bối cảnh và chuyển sang trạng thái chọn chữ
@@ -519,13 +524,17 @@ void GameUI::handleGameEvents() {
                     mousePos_.y >= boardRect_.y && mousePos_.y < boardRect_.y + boardRect_.h) {
                     int col = (mousePos_.x - boardRect_.x) / CELL_SIZE;
                     int row = (mousePos_.y - boardRect_.y) / CELL_SIZE;
-                    bool isOccupied = game_.getBoard().hasTile(row, col);
-                    for(const auto& placedTile : currentMoveTiles_) {
-                        if (placedTile.boardRow == row && placedTile.boardCol == col) { isOccupied = true; break; }
-                    }
-                    if (!isOccupied) {
-                        currentMoveTiles_.push_back({draggedTile_, row, col, draggedRackIndex_});
-                        dropped_successfully = true;
+                    if (!game_.getBoard().isValidPosition(row, col)) {  // Add this
+                        dropped_successfully = false;
+                    } else {
+                        bool isOccupied = game_.getBoard().hasTile(row, col);
+                        for(const auto& placedTile : currentMoveTiles_) {
+                            if (placedTile.boardRow == row && placedTile.boardCol == col) { isOccupied = true; break; }
+                        }
+                        if (!isOccupied) {
+                            currentMoveTiles_.push_back({draggedTile_, row, col, draggedRackIndex_});
+                            dropped_successfully = true;
+                        }
                     }
                 }
                 if (!dropped_successfully && mousePos_.x >= rackRect_.x && mousePos_.x < rackRect_.x + rackRect_.w && 
@@ -562,6 +571,9 @@ void GameUI::renderGame() {
             int col = (mousePos_.x - boardRect_.x) / CELL_SIZE;
             int row = (mousePos_.y - boardRect_.y) / CELL_SIZE;
             bool isOccupied = game_.getBoard().hasTile(row, col);
+            if (row < 0 || row >= Board::SIZE || col < 0 || col >= Board::SIZE) {
+                isOccupied = true;
+            }
             for (const auto& placedTile : currentMoveTiles_) {
                 if (placedTile.boardRow == row && placedTile.boardCol == col) {
                     isOccupied = true;

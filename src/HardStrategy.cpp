@@ -76,11 +76,11 @@ std::vector<char> HardStrategy::selectTilesToSwap(const std::unordered_map<char,
     for (char c : hard_tiles) {
         if (rackCount.count(c) && rackCount.at(c) > 0) {
             tiles_to_swap.push_back(c);
-            if (tiles_to_swap.size() >= 2) break; // Swap tối đa 2 tiles
+            if (tiles_to_swap.size() >= 3) break; // Swap tối đa 3  tiles
         }
     }
 
-    if (tiles_to_swap.size() < 2) {
+    if (tiles_to_swap.size() < 3) {
         std::vector<char> vowels = {'A', 'E', 'I', 'O', 'U'};
         for (const auto& [letter, count] : rackCount) {
             if (count > 1 && std::find(vowels.begin(), vowels.end(), letter) == vowels.end() && tiles_to_swap.size() < 2) {
